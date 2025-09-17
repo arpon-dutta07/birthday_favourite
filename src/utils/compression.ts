@@ -9,8 +9,8 @@ interface Payload {
   createdAt: string;
 }
 
-// Slightly stronger defaults to keep URLs smaller
-export const compressImage = (file: File, maxDimension = 1000, quality = 0.72): Promise<string> => {
+// More aggressive compression for shorter URLs
+export const compressImage = (file: File, maxDimension = 800, quality = 0.65): Promise<string> => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -63,8 +63,8 @@ export const compressImage = (file: File, maxDimension = 1000, quality = 0.72): 
 export const encodePayload = (payload: Payload): string => {
   const jsonString = JSON.stringify(payload);
   const compressed = LZString.compressToEncodedURIComponent(jsonString);
-  // Hash router path with query after the route: https://host/#/view?data=...
-  return `${window.location.origin}/#/view?data=${compressed}`;
+  // Use clean URL with BrowserRouter
+  return `${window.location.origin}/view?data=${compressed}`;
 };
 
 export const decodePayload = (encodedData: string): Payload => {
