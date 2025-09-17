@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Heart, Sparkles } from "lucide-react";
-import { MusicPlayer } from "./MusicPlayer"; // keep your existing MusicPlayer
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { Heart, Sparkles, Play, Pause, Volume2 } from "lucide-react";
+import introMusic from '../assets/intro.mp3';
 
 interface ImageItem {
   name: string;
@@ -14,124 +14,48 @@ interface IntroSlideshowProps {
   name?: string;
 }
 
-/**
- * ParticleCanvas: internal fast canvas for explosion particles.
- * Exposes .explode(x, y, opts) to spawn particles at screen coordinates.
- */
-function ParticleCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const particlesRef = useRef<any[]>([]);
-  const dprRef = useRef<number>(1);
-
-  useEffect(() => {
-    const canvas = canvasRef.current!;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d")!;
-    const resize = () => {
-      dprRef.current = window.devicePixelRatio || 1;
-      canvas.width = Math.round(window.innerWidth * dprRef.current);
-      canvas.height = Math.round(window.innerHeight * dprRef.current);
-      canvas.style.width = `${window.innerWidth}px`;
-      canvas.style.height = `${window.innerHeight}px`;
-      ctx.setTransform(dprRef.current, 0, 0, dprRef.current, 0, 0);
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    // animation loop
-    const step = () => {
-      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-      const now = performance.now();
-      const arr = particlesRef.current;
-      for (let i = arr.length - 1; i >= 0; i--) {
-        const p = arr[i];
-        p.vy += p.gravity;
-        p.vx *= p.friction;
-        p.vy *= p.air;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.alpha -= p.fade;
-        p.rotation += p.spin;
-        // draw heart-shaped particle
-        if (p.alpha > 0) {
-          ctx.save();
-          ctx.globalAlpha = Math.max(0, p.alpha);
-          ctx.translate(p.x, p.y);
-          ctx.rotate(p.rotation);
-          const s = p.size;
-          ctx.beginPath();
-          // simple heart via two circles + triangle-ish path for performance
-          ctx.moveTo(0, -s * 0.6);
-          ctx.bezierCurveTo(-s * 0.6, -s * 1.1, -s * 1.6, -s * 0.15, -s * 0.1, s * 0.7);
-          ctx.bezierCurveTo(0, s * 0.9, s * 0.6, s * 0.9, s * 0.1, s * 0.7);
-          ctx.bezierCurveTo(s * 1.6, -s * 0.15, s * 0.6, -s * 1.1, 0, -s * 0.6);
-          ctx.closePath();
-          ctx.fillStyle = p.color;
-          ctx.fill();
-          ctx.restore();
-        }
-        if (p.alpha <= 0.01 || p.y > window.innerHeight + 200) {
-          arr.splice(i, 1);
-        }
-      }
-      rafRef.current = requestAnimationFrame(step);
-    };
-    rafRef.current = requestAnimationFrame(step);
-
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
-
-  // API: explode at screen coords (x,y) in px
-  useEffect(() => {
-    // provide a global function via ref to call externally — we return it via dataset on canvas
-    // but we'll mount function onto element for parent to call. see wrapper below.
-  }, []);
-
-  // attach helper to DOM element for parent access
-  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 60 }} />;
-}
-
-/**
- * Utility function to spawn particles on the canvas element instance.
- * We'll implement canvas management in the parent component and call spawnParticles(canvas, x, y)
- * because ParticleCanvas above is just the canvas. To keep everything self-contained in a single file,
- * below we combine canvas and spawn logic in the main component via refs.
- */
-
 const IntroSlideshow: React.FC<IntroSlideshowProps> = ({ images, onComplete, name }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [phase, setPhase] = useState<"enter" | "visible" | "out">("enter");
   const [showOverlay, setShowOverlay] = useState(false);
   const [romanticTextIndex, setRomanticTextIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isAudioLoaded, setIsAudioLoaded] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const particlesRef = useRef<any[]>([]);
+  const particlesRef = useRef<Array<{
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    gravity: number;
+    size: number;
+    alpha: number;
+    fade: number;
+    color: string;
+    rotation?: number;
+    spin?: number;
+  }>>([]);
   const rafRef = useRef<number | null>(null);
   const timeoutsRef = useRef<number[]>([]);
-  const activeCardRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const isManualRef = useRef(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const ENTER_MS = 900;
-  const VISIBLE_MS = 3600; // visible time
-  const OUT_MS = 900;
-  const TOTAL_MS = ENTER_MS + VISIBLE_MS + OUT_MS;
+  const ENTER_MS = 600;
+  const VISIBLE_MS = 2800;
+  const OUT_MS = 600;
 
-  // messages
-  const romanticTexts = [
-    `Hey ${name ? name : "there"} 💖`,
+  // Memoize static data to prevent re-renders
+  const romanticTexts = useMemo(() => [
+    `Hey ${name || "there"} 💖`,
     "Look how beautiful these memories are...",
     "Every moment with you is magical ✨",
     "You mean the world to me 🌎💫",
     "These photos tell our story 📸💕",
-  ];
+  ], [name]);
 
-  const captionsPool = [
+  const captionsPool = useMemo(() => [
     "Beautiful moments we shared ❤️",
     "Love you forever 💕",
     "Happy vibes only 🎉",
@@ -142,43 +66,75 @@ const IntroSlideshow: React.FC<IntroSlideshowProps> = ({ images, onComplete, nam
     "Dancing through life with you 🎶",
     "You are my sunshine ☀️",
     "Together, forever, always 💫",
-  ];
+  ], []);
 
-  // --- Canvas particle system (fast & contained) ---
+  // Optimized particle system with reduced complexity
+  const spawnExplosion = useCallback((screenX: number, screenY: number) => {
+    const COUNT = 20; // Reduced particle count
+    for (let i = 0; i < COUNT; i++) {
+      const angle = (i / COUNT) * Math.PI * 2;
+      const speed = 2 + Math.random() * 4;
+      const vx = Math.cos(angle) * speed;
+      const vy = Math.sin(angle) * speed - 2;
+      const size = 6 + Math.random() * 4;
+      const colors = ["#FF69B4", "#FFD87A", "#FF9CD1"];
+      const color = colors[i % 3];
+      
+      particlesRef.current.push({
+        x: screenX,
+        y: screenY,
+        vx,
+        vy,
+        gravity: 0.2,
+        size,
+        alpha: 1,
+        fade: 0.02,
+        color,
+        rotation: Math.random() * Math.PI * 2,
+        spin: (Math.random() - 0.5) * 0.3,
+      });
+    }
+  }, []);
+
   useEffect(() => {
-    const canvas = canvasRef.current!;
+    const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d")!;
-    const dpr = window.devicePixelRatio || 1;
+    
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
     const resize = () => {
-      canvas.width = Math.round(window.innerWidth * dpr);
-      canvas.height = Math.round(window.innerHeight * dpr);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2); // Cap DPR for performance
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
       canvas.style.width = `${window.innerWidth}px`;
       canvas.style.height = `${window.innerHeight}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.scale(dpr, dpr);
     };
+    
     resize();
     window.addEventListener("resize", resize);
 
-    const step = () => {
+    const animate = () => {
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-      const arr = particlesRef.current;
-      for (let i = arr.length - 1; i >= 0; i--) {
-        const p = arr[i];
+      const particles = particlesRef.current;
+      
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
         p.vy += p.gravity;
-        p.vx *= p.friction;
-        p.vy *= p.air;
         p.x += p.vx;
         p.y += p.vy;
         p.alpha -= p.fade;
-        p.rotation += p.spin;
+        if (p.spin) p.rotation = (p.rotation || 0) + p.spin;
+        
         if (p.alpha > 0) {
           ctx.save();
           ctx.globalAlpha = Math.max(0, p.alpha);
           ctx.translate(p.x, p.y);
-          ctx.rotate(p.rotation);
+          ctx.rotate(p.rotation || 0);
           const s = p.size;
           ctx.beginPath();
+          // Beautiful heart shape
           ctx.moveTo(0, -s * 0.6);
           ctx.bezierCurveTo(-s * 0.55, -s * 1.0, -s * 1.45, -s * 0.2, -s * 0.1, s * 0.7);
           ctx.bezierCurveTo(0, s * 0.9, s * 0.6, s * 0.9, s * 0.1, s * 0.7);
@@ -188,11 +144,16 @@ const IntroSlideshow: React.FC<IntroSlideshowProps> = ({ images, onComplete, nam
           ctx.fill();
           ctx.restore();
         }
-        if (p.alpha <= 0.01 || p.y > window.innerHeight + 200) arr.splice(i, 1);
+        
+        if (p.alpha <= 0 || p.y > window.innerHeight + 100) {
+          particles.splice(i, 1);
+        }
       }
-      rafRef.current = requestAnimationFrame(step);
+      
+      rafRef.current = requestAnimationFrame(animate);
     };
-    rafRef.current = requestAnimationFrame(step);
+    
+    rafRef.current = requestAnimationFrame(animate);
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -200,34 +161,60 @@ const IntroSlideshow: React.FC<IntroSlideshowProps> = ({ images, onComplete, nam
     };
   }, []);
 
-  function spawnExplosion(screenX: number, screenY: number, colorBase = "#FF69B4") {
-    // spawn n particles around the (screenX, screenY)
-    const COUNT = 36;
-    for (let i = 0; i < COUNT; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 2 + Math.random() * 6;
-      const vx = Math.cos(angle) * speed + (Math.random() - 0.5) * 1.8;
-      const vy = Math.sin(angle) * speed - (Math.random() * 2 + 1.6);
-      const size = 4 + Math.random() * 10;
-      const hue = 320 + Math.random() * 60; // pink/fuchsia range
-      const color = i % 3 === 0 ? `hsl(${hue},80%,65%)` : i % 2 === 0 ? "#FFD87A" : colorBase;
-      particlesRef.current.push({
-        x: screenX,
-        y: screenY,
-        vx,
-        vy,
-        gravity: 0.18 + Math.random() * 0.06,
-        friction: 0.995,
-        air: 0.995,
-        size,
-        spin: (Math.random() - 0.5) * 0.4,
-        rotation: Math.random() * Math.PI,
-        alpha: 0.95,
-        fade: 0.015 + Math.random() * 0.008,
-        color,
-      });
+  // --- Audio Setup and Controls ---
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      const handleCanPlayThrough = () => setIsAudioLoaded(true);
+      const handleEnded = () => setIsPlaying(false);
+      const handleError = () => {
+        console.error('Audio loading error');
+        setIsAudioLoaded(false);
+      };
+      
+      audio.addEventListener('canplaythrough', handleCanPlayThrough);
+      audio.addEventListener('ended', handleEnded);
+      audio.addEventListener('error', handleError);
+      
+      return () => {
+        audio.removeEventListener('canplaythrough', handleCanPlayThrough);
+        audio.removeEventListener('ended', handleEnded);
+        audio.removeEventListener('error', handleError);
+      };
     }
-  }
+  }, []);
+
+  const toggleMusic = useCallback(async () => {
+    const audio = audioRef.current;
+    if (audio && isAudioLoaded) {
+      try {
+        if (isPlaying) {
+          audio.pause();
+          setIsPlaying(false);
+        } else {
+          if (audio.ended) {
+            audio.currentTime = 0;
+          }
+          audio.volume = 0.7;
+          await audio.play();
+          setIsPlaying(true);
+        }
+      } catch (error) {
+        console.error('Audio playback failed:', error);
+        audio.load();
+        setIsAudioLoaded(false);
+      }
+    }
+  }, [isPlaying, isAudioLoaded]);
+
+  const stopMusic = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      setIsPlaying(false);
+    }
+  }, []);
 
   // --- Preload images robustly ---
   useEffect(() => {
@@ -317,74 +304,9 @@ const IntroSlideshow: React.FC<IntroSlideshowProps> = ({ images, onComplete, nam
       setRomanticTextIndex((p) => (p + 1) % romanticTexts.length);
     }, 5200);
     return () => clearInterval(id);
-  }, []);
+  }, [romanticTexts.length]);
 
-  // manual controls (Prev/Next)
-  function clearSeqAndJump(toIndex: number) {
-    timeoutsRef.current.forEach((id) => window.clearTimeout(id));
-    timeoutsRef.current = [];
-    isManualRef.current = true;
-    // play an immediate exit animation for current card
-    setPhase("out");
-    // spawn particles at center quickly
-    const cont = containerRef.current;
-    if (cont) {
-      const r = cont.getBoundingClientRect();
-      spawnExplosion(r.left + r.width / 2, r.top + r.height / 2);
-    } else spawnExplosion(window.innerWidth / 2, window.innerHeight / 2);
 
-    // after short delay go to the desired card and restart play sequence
-    const after = window.setTimeout(() => {
-      setShowOverlay(false);
-      setCurrentIndex(toIndex);
-      setPhase("enter");
-      // resume auto sequence from the selected index
-      const resume = window.setTimeout(() => {
-        // start the deck from 'toIndex' using same scheduling logic as before
-        // use existing scheduling: call an inner function similar to the one above
-        // to avoid duplication, simply start a new play loop by setting imagesLoaded state trigger:
-        // simplest approach: mimic playFrom:
-        setPhase("enter");
-        const t1 = window.setTimeout(() => setPhase("visible"), ENTER_MS);
-        timeoutsRef.current.push(t1);
-        const t2 = window.setTimeout(() => {
-          setPhase("out");
-          const c = containerRef.current;
-          if (c) {
-            const r2 = c.getBoundingClientRect();
-            spawnExplosion(r2.left + r2.width / 2, r2.top + r2.height / 2);
-          }
-        }, ENTER_MS + VISIBLE_MS);
-        timeoutsRef.current.push(t2);
-        const t3 = window.setTimeout(() => {
-          const next = toIndex + 1;
-          if (next >= images.length) setShowOverlay(true);
-          else {
-            // schedule next chain recursively by programmatically invoking the main useEffect logic:
-            // easiest: manual recursion here:
-            // But to keep simple, we set currentIndex to next and let the main effect sequence pick up if still imagesLoaded
-            setCurrentIndex(next);
-          }
-        }, ENTER_MS + VISIBLE_MS + OUT_MS);
-        timeoutsRef.current.push(t3);
-      }, 220);
-      timeoutsRef.current.push(resume);
-      isManualRef.current = false;
-    }, 600);
-    timeoutsRef.current.push(after);
-  }
-
-  const goNext = () => {
-    const next = Math.min(images.length - 1, currentIndex + 1);
-    if (next === currentIndex) return;
-    clearSeqAndJump(next);
-  };
-
-  const goPrev = () => {
-    const prev = Math.max(0, currentIndex - 1);
-    if (prev === currentIndex) return;
-    clearSeqAndJump(prev);
-  };
 
   // helper to render caption words with staggered transforms (smooth)
   function renderCaptionWords(text: string) {
@@ -395,7 +317,7 @@ const IntroSlideshow: React.FC<IntroSlideshowProps> = ({ images, onComplete, nam
           <span
             key={i}
             className="caption-word"
-            style={{ ["--i" as any]: i }}
+            style={{ "--i": i } as React.CSSProperties}
           >
             {w}
             {i < words.length - 1 ? "\u00A0" : ""}
@@ -405,35 +327,100 @@ const IntroSlideshow: React.FC<IntroSlideshowProps> = ({ images, onComplete, nam
     );
   }
 
-  // onComplete handler for final overlay
-  function handleOpen() {
-    onComplete();
-  }
+  // onComplete handler for final overlay - FIXED with better event handling
+  const handleOpen = useCallback(() => {
+    console.log('Tap to Open clicked!'); // Debug log
+    try {
+      stopMusic(); // Stop music when transitioning to next page
+      onComplete();
+    } catch (error) {
+      console.error('Error calling onComplete:', error);
+    }
+  }, [onComplete, stopMusic]);
 
   return (
     <div className="intro-root min-h-screen bg-gradient-to-br from-[#0b0212] to-[#1a0325] relative overflow-hidden">
+      {/* Audio Element */}
+      <audio
+        ref={audioRef}
+        src={introMusic}
+        loop
+        preload="auto"
+      />
+
       {/* Canvas for particles (fixed full-screen) */}
-      <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 60, pointerEvents: "none" }} />
+      <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-10" />
 
-      {/* Music */}
-      <MusicPlayer />
+      {/* Fixed Music Button */}
+      <div className="fixed top-6 right-6 z-50">
+        <button
+          onClick={toggleMusic}
+          disabled={!isAudioLoaded}
+          className={`relative w-16 h-16 rounded-full flex items-center justify-center text-white shadow-xl transition-all duration-300 transform ${
+            isPlaying 
+              ? 'bg-gradient-to-r from-pink-500 to-rose-500 hover:shadow-pink-500/30 animate-pulse' 
+              : 'bg-gradient-to-r from-pink-400 to-rose-400 hover:shadow-pink-400/30'
+          } ${!isAudioLoaded ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110 active:scale-95'}
+          `}
+        >
+          {/* Glow Effect */}
+          <div className={`absolute inset-0 rounded-full blur-lg ${
+            isPlaying ? 'bg-pink-400/60 animate-pulse' : 'bg-pink-400/30'
+          }`}></div>
+          
+          {/* Play/Pause Icon */}
+          <div className="relative z-10">
+            {!isAudioLoaded ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : isPlaying ? (
+              <Pause className="text-xl" />
+            ) : (
+              <Play className="text-xl ml-1" />
+            )}
+          </div>
 
-      {/* background sparkles */}
+          {/* Music Visualization */}
+          {isPlaying && (
+            <div className="absolute -right-6 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
+              {[1, 2, 3, 4].map((bar) => (
+                <div
+                  key={bar}
+                  className="w-1 bg-pink-400 rounded-full music-bar"
+                  style={{
+                    animationDelay: `${bar * 0.2}s`
+                  }}
+                ></div>
+              ))}
+            </div>
+          )}
+
+          {/* Music Note Animation */}
+          {isPlaying && (
+            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-pink-300 animate-bounce">
+              <Volume2 className="text-sm" />
+            </div>
+          )}
+        </button>
+      </div>
+
+
+
+      {/* Reduced background sparkles for better performance */}
       <div className="absolute inset-0 pointer-events-none">
-        {[...Array(18)].map((_, i) => (
+        {[...Array(8)].map((_, i) => (
           <div
             key={i}
             className="absolute animate-twinkle"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 6}s`,
-              animationDuration: `${3 + Math.random() * 3}s`,
+              left: `${20 + (i * 12)}%`,
+              top: `${15 + (i * 10)}%`,
+              animationDelay: `${i * 0.8}s`,
+              animationDuration: "4s",
               zIndex: 2,
-              opacity: 0.9,
+              opacity: 0.6,
             }}
           >
-            <Sparkles className="w-4 h-4 text-yellow-200 opacity-80" />
+            <Sparkles className="w-3 h-3 text-yellow-200 opacity-60" />
           </div>
         ))}
       </div>
@@ -452,37 +439,38 @@ const IntroSlideshow: React.FC<IntroSlideshowProps> = ({ images, onComplete, nam
           >
             {images.map((img, idx) => {
               const active = idx === currentIndex;
+              if (!active && Math.abs(idx - currentIndex) > 1) return null; // Only render current and adjacent cards
+              
               return (
                 <div
                   key={idx}
-                  ref={active ? activeCardRef : null}
                   className={`card ${active ? `card-active phase-${phase}` : "card-hidden"}`}
-                  aria-hidden={!active}
+                  aria-hidden={!active ? "true" : "false"}
                 >
                   <div className="card-inner">
-                    {/* inner glow overlay (for border) */}
                     <div className="card-glow" />
                     <div className="card-content">
                       <img src={img.dataUrl} alt={img.name} className="card-image" />
                       <div className="card-caption">
-                        {renderCaptionWords(captionsPool[(idx + currentIndex) % captionsPool.length])}
+                        {renderCaptionWords(captionsPool[idx % captionsPool.length])}
                       </div>
                     </div>
 
-                    {/* subtle internal floating hearts */}
-                    <div className="card-floating">
-                      {[...Array(6)].map((_, i) => (
-                        <div key={i} className="floating-heart" style={{
-                          left: `${10 + i * 12 + (i % 2) * 6}%`,
-                          top: `${18 + ((i * 7) % 40)}%`,
-                          animationDelay: `${0.2 * i}s`
-                        }}>
-                          <Heart className="w-4 h-4 text-pink-300" />
-                        </div>
-                      ))}
-                    </div>
+                    {/* Reduced floating hearts for performance */}
+                    {active && (
+                      <div className="card-floating">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="floating-heart" style={{
+                            left: `${20 + i * 20}%`,
+                            top: `${20 + i * 15}%`,
+                            animationDelay: `${0.3 * i}s`
+                          }}>
+                            <Heart className="w-3 h-3 text-pink-300" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-                    {/* deep shadow ellipse */}
                     <div className="card-ellipse" />
                   </div>
                 </div>
@@ -490,31 +478,39 @@ const IntroSlideshow: React.FC<IntroSlideshowProps> = ({ images, onComplete, nam
             })}
           </div>
 
-          {/* navigation */}
-          <div className="mt-8 flex items-center justify-center gap-6">
-            <button onClick={goPrev} className="nav-btn" aria-label="Previous">
-              ◀
-            </button>
+          {/* navigation dots only */}
+          <div className="mt-8 flex items-center justify-center">
             <div className="dots flex gap-2 items-center">
               {images.map((_, i) => (
                 <div key={i} className={`dot ${i === currentIndex ? "dot-active" : ""}`} />
               ))}
             </div>
-            <button onClick={goNext} className="nav-btn" aria-label="Next">
-              ▶
-            </button>
           </div>
         </div>
       </div>
 
-      {/* final overlay */}
+      {/* FIXED final overlay with better z-index and event handling */}
       {showOverlay && (
-        <div className="overlay fixed inset-0 z-70 flex items-center justify-center">
-          <div className="overlay-inner text-center p-8 rounded-3xl">
-            <Heart className="w-20 h-20 mx-auto mb-6 text-pink-400" />
-            <h2 className="text-4xl text-white mb-4">Don't get lost in this romantic vibe... 💫</h2>
-            <p className="text-gray-200 mb-6">You have something special waiting.</p>
-            <button className="open-btn" onClick={handleOpen}>Tap to Open ✨</button>
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[100]"
+          style={{ position: 'fixed', zIndex: 9999 }}
+        >
+          <div className="overlay-inner text-center p-8 rounded-3xl bg-gradient-to-br from-purple-900/90 to-pink-900/90 backdrop-blur-sm border border-pink-500/20">
+            <Heart className="w-20 h-20 mx-auto mb-6 text-pink-400 animate-pulse" />
+            <h2 className="text-4xl text-white mb-4 font-bold">Don't get lost in this romantic vibe... 💫</h2>
+            <p className="text-gray-200 mb-6 text-lg">You have something special waiting.</p>
+            <button 
+              className="open-btn bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold py-4 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-pink-500/25"
+              onClick={handleOpen}
+              style={{ 
+                cursor: 'pointer',
+                border: 'none',
+                outline: 'none',
+                userSelect: 'none'
+              }}
+            >
+              Tap to Open ✨
+            </button>
           </div>
         </div>
       )}
@@ -642,76 +638,67 @@ const IntroSlideshow: React.FC<IntroSlideshowProps> = ({ images, onComplete, nam
           100% { transform: translateY(0) scale(1); opacity: 0.85; }
         }
 
-        /* phases: enter, visible, out */
-        .phase-enter .card-inner { animation: cardEnter 900ms cubic-bezier(.22,1,.36,1) both; }
-        .phase-visible .card-inner { transform: none; transition: transform 600ms ease; }
-        .phase-out .card-inner { animation: cardOut 900ms cubic-bezier(.22,1,.36,1) both; opacity: 0; }
-
-        /* small hover effect when user clicks (only for manual) */
-        .card-inner:active { transform: translateY(4px) scale(0.995); }
+        /* Optimized phases with simpler animations */
+        .phase-enter .card-inner { animation: cardEnter 600ms ease-out both; }
+        .phase-visible .card-inner { transform: none; opacity: 1; }
+        .phase-out .card-inner { animation: cardOut 600ms ease-in both; }
 
         @keyframes cardEnter {
-          0% { transform: perspective(1200px) translateY(40px) rotateX(12deg) rotateY(30deg) scale(.84); opacity: 0; filter: blur(8px); }
-          60% { transform: perspective(1200px) translateY(-10px) rotateX(6deg) rotateY(6deg) scale(1.06); opacity: 1; filter: blur(0px); }
-          100% { transform: perspective(1200px) translateY(0) rotateX(0deg) rotateY(0deg) scale(1); opacity: 1; filter: blur(0px); }
+          0% { transform: translateY(30px) scale(0.9); opacity: 0; }
+          100% { transform: translateY(0) scale(1); opacity: 1; }
         }
         @keyframes cardOut {
-          0% { transform: perspective(1200px) translateY(0) rotateX(0deg) rotateY(0deg) scale(1); opacity: 1; filter: blur(0); }
-          60% { transform: perspective(1200px) translateY(-10px) rotateX(-8deg) rotateY(-20deg) scale(.88); opacity: .8; filter: blur(1px); }
-          100% { transform: perspective(1200px) translateY(-140px) rotateX(-18deg) rotateY(-60deg) scale(.6); opacity: 0; filter: blur(3px); }
+          0% { transform: translateY(0) scale(1); opacity: 1; }
+          100% { transform: translateY(-30px) scale(0.9); opacity: 0; }
         }
 
-        /* caption word animation: staggered words using CSS variable --i */
-        .caption-words { display:inline-block; }
+        /* Simplified caption word animation */
+        .caption-words { display: inline-block; }
         .caption-word {
-          display:inline-block;
+          display: inline-block;
           opacity: 0;
-          transform: translateY(14px) scale(0.98);
-          animation: wordIn 450ms cubic-bezier(.22,1,.36,1) forwards;
-          animation-delay: calc(var(--i) * 0.08s);
+          animation: wordIn 400ms ease-out forwards;
+          animation-delay: calc(var(--i) * 0.05s);
           margin-right: 6px;
           color: #7a2540;
           font-weight: 700;
         }
         @keyframes wordIn {
-          to { opacity: 1; transform: translateY(0) scale(1); }
+          to { opacity: 1; }
         }
 
-        /* nav buttons */
-        .nav-btn {
-          width:48px; height:48px; border-radius:12px; background: rgba(255,255,255,0.06); color: #fff; border: 1px solid rgba(255,255,255,0.06);
-          display:flex; align-items:center; justify-content:center; font-size:18px; cursor:pointer; transition: transform 200ms ease, background 200ms ease;
-          box-shadow: 0 8px 18px rgba(0,0,0,0.5);
-        }
-        .nav-btn:hover { transform: translateY(-4px) scale(1.02); background: rgba(255,255,255,0.09); }
+
 
         .dots { display:flex; align-items:center; justify-content:center; }
         .dot { width:10px; height:10px; border-radius:99px; background: rgba(255,255,255,0.12); transition: transform 200ms, background 200ms; }
         .dot-active { background: linear-gradient(90deg,#ff6aa1,#ff9cd1); transform: scale(1.4); box-shadow: 0 6px 18px rgba(255,120,170,0.18); }
 
-        /* overlay & button */
-        .overlay { background: rgba(0,0,0,0.82); }
-        .overlay-inner { background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); backdrop-filter: blur(8px); border-radius: 18px; box-shadow: 0 24px 80px rgba(0,0,0,0.7); }
-        .open-btn {
-          background: linear-gradient(90deg,#ff6aa1,#ff2fa6);
-          color: white;
-          padding: 14px 28px;
-          border-radius: 999px;
-          font-weight:600;
-          box-shadow: 0 18px 50px rgba(255,80,150,0.28);
-          border: none;
-          cursor: pointer;
-          transform-origin: center;
-          transition: transform 300ms cubic-bezier(.22,1,.36,1), box-shadow 300ms;
-        }
-        .open-btn:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 26px 72px rgba(255,80,150,0.36); }
-
         /* simple animations used globally */
         .animate-twinkle { animation: twinkle 3s ease-in-out infinite; }
         @keyframes twinkle { 0%,100%{ opacity:0.02; transform: scale(.8);} 50% { opacity:0.9; transform: scale(1.15);} }
 
-        /* performance hint */
-        .card-inner, .card-content, .card-image, .card-glow { will-change: transform, opacity, filter; }
+        /* music visualization bars */
+        .music-bar { 
+          height: 4px;
+          animation: musicBar 1.5s ease-in-out infinite;
+        }
+        @keyframes musicBar {
+          0%, 100% { height: 4px; }
+          25% { height: 16px; }
+          50% { height: 8px; }
+          75% { height: 12px; }
+        }
+
+        /* GPU acceleration and performance hints */
+        .card-inner, .card-content, .card-image, .card-glow { 
+          will-change: transform, opacity;
+          transform: translateZ(0);
+          backface-visibility: hidden;
+        }
+        .floating-heart {
+          will-change: transform;
+          transform: translateZ(0);
+        }
       `}</style>
     </div>
   );
