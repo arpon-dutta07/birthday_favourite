@@ -1,9 +1,8 @@
-import React, { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { RotateCcw, Volume2, VolumeX } from "lucide-react";
-import Particles from "./Particles";
-import Confetti from "./Confetti";
-import Firework from "./Firework";
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import Particles from './Particles';
+import Confetti from './Confetti';
 
 interface Props {
   name: string;
@@ -17,15 +16,15 @@ interface Props {
 }
 
 type SequenceState =
-  | "greeting"
-  | "dark"
-  | "bulb"
-  | "room"
-  | "decorate"
-  | "cake"
-  | "blow"
-  | "gift"
-  | "credits";
+  | 'greeting'
+  | 'dark'
+  | 'bulb'
+  | 'room'
+  | 'decorate'
+  | 'cake'
+  | 'blow'
+  | 'gift'
+  | 'credits';
 
 const BirthdaySequence: React.FC<Props> = ({
   name,
@@ -37,7 +36,7 @@ const BirthdaySequence: React.FC<Props> = ({
   onReplay,
   isCompleted,
 }) => {
-  const [state, setState] = useState<SequenceState>("greeting");
+  const [state, setState] = useState<SequenceState>('greeting');
   const [isDecorated, setIsDecorated] = useState(false);
   const [showCake, setShowCake] = useState(false);
   const [candlesBlown, setCandlesBlown] = useState(false);
@@ -46,80 +45,84 @@ const BirthdaySequence: React.FC<Props> = ({
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
+  // ✅ new states for PNG sequence
   const [showDecorImages, setShowDecorImages] = useState(false);
   const [currentDecorIndex, setCurrentDecorIndex] = useState(0);
 
+  // ✅ flash state
   const [showFlash, setShowFlash] = useState(false);
 
+  // ✅ detect mobile
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Initial sequence transitions
   useEffect(() => {
-    if (state === "greeting") {
-      const timer = setTimeout(() => setState("dark"), 3000);
+    if (state === 'greeting') {
+      const timer = setTimeout(() => setState('dark'), 3000);
       return () => clearTimeout(timer);
     }
-    if (state === "dark") {
-      const timer = setTimeout(() => setState("bulb"), 2500);
+    if (state === 'dark') {
+      const timer = setTimeout(() => setState('bulb'), 2000);
       return () => clearTimeout(timer);
     }
   }, [state]);
 
   const handleBulbClick = () => {
-    if (state === "bulb") setState("room");
+    if (state === 'bulb') {
+      setState('room');
+    }
   };
 
   const handleDecorate = () => {
     setIsDecorated(true);
     setShowConfetti(true);
     setShowDecorImages(true);
-    setCurrentDecorIndex(0);
-
-    setTimeout(() => setCurrentDecorIndex(1), 3000);
-    setTimeout(() => setCurrentDecorIndex(2), 6000);
-    setTimeout(() => setState("cake"), 9000);
-    setTimeout(() => setShowConfetti(false), 6000);
+    setCurrentDecorIndex(0); // Sequence PNGs
+    setTimeout(() => setCurrentDecorIndex(1), 2000);
+    setTimeout(() => setCurrentDecorIndex(2), 4000);
+    setTimeout(() => setState('cake'), 6000);
+    setTimeout(() => setShowConfetti(false), 4000);
   };
 
   const handleBringCake = () => {
     setShowCake(true);
-    setState("blow");
+    setState('blow');
   };
 
   const handleBlowCandles = () => {
     setCandlesBlown(true);
-
     if (audio && audioRef.current && !audioEnabled) {
       audioRef.current
         .play()
         .then(() => setAudioEnabled(true))
         .catch(() => {});
     }
-
     setTimeout(() => {
       setShowGift(true);
-      setState("gift");
-    }, 2500);
+      setState('gift');
+    }, 2000);
   };
 
   const handleGiftClick = () => {
+    // open the gift, but show a white flash before revealing credits
     setGiftOpened(true);
     setShowConfetti(true);
+
+    // show a flash overlay
     setShowFlash(true);
+    const FLASH_DURATION = 300;
 
-    const FLASH_DURATION = 400;
-
+    // after flash, go to credits
     setTimeout(() => {
       setShowFlash(false);
       setShowDecorImages(false);
-      setState("credits");
+      setState('credits');
       onComplete();
     }, FLASH_DURATION);
   };
@@ -137,24 +140,25 @@ const BirthdaySequence: React.FC<Props> = ({
   };
 
   useEffect(() => {
-    if (state === "gift") setShowDecorImages(false);
+    if (state === 'gift') {
+      setShowDecorImages(false);
+    }
   }, [state]);
 
+  // ✅ Desktop vs Mobile PNGs
   const desktopImages = [
-    "/src/assets/ballons.png",
-    "/src/assets/popup.png",
-    "/src/assets/happy.png",
+    '/src/assets/ballons.png',
+    '/src/assets/popup.png',
+    '/src/assets/happy.png',
   ];
-
   const mobileImages = [
-    "/src/assets/mobile (1).png",
-    "/src/assets/mobile (3).png",
-    "/src/assets/mobile (2).png",
+    '/src/assets/mobile (1).png',
+    '/src/assets/mobile (3).png',
+    '/src/assets/mobile (2).png',
   ];
-
   const imagesToShow = isMobile ? mobileImages : desktopImages;
 
-  const roomImage = "/src/assets/room.jpg";
+  const roomImage = '/src/assets/room.jpg';
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
@@ -166,7 +170,7 @@ const BirthdaySequence: React.FC<Props> = ({
       )}
 
       {/* Audio Toggle */}
-      {audio && (
+      {audio && audioEnabled && (
         <button
           onClick={toggleAudio}
           className="absolute top-4 right-4 z-30 bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-colors"
@@ -191,14 +195,17 @@ const BirthdaySequence: React.FC<Props> = ({
 
       {/* Background Room */}
       <AnimatePresence>
-        {["room", "decorate", "cake", "blow", "gift", "credits"].includes(
-          state
-        ) && (
+        {(state === 'room' ||
+          state === 'decorate' ||
+          state === 'cake' ||
+          state === 'blow' ||
+          state === 'gift' ||
+          state === 'credits') && (
           <motion.div
             className="absolute inset-0"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 2, ease: "easeInOut" }}
+            transition={{ duration: 2 }}
           >
             <img
               src={roomImage}
@@ -210,32 +217,38 @@ const BirthdaySequence: React.FC<Props> = ({
         )}
       </AnimatePresence>
 
-      {/* Particles + Confetti */}
+      {/* Particles */}
       {(isDecorated || giftOpened) && <Particles />}
+
+      {/* Confetti */}
       {showConfetti && <Confetti />}
 
-      {/* Decor Images */}
+      {/* ✅ Decor Images Sequence */}
       <AnimatePresence>
-        {showDecorImages &&
-          imagesToShow.map(
-            (src, index) =>
-              index <= currentDecorIndex && (
-                <motion.img
-                  key={index}
-                  src={src}
-                  alt={`decor-${index}`}
-                  className={`absolute top-0 left-0 w-full z-20 ${
-                    isMobile ? "h-screen object-cover" : "object-contain"
-                  }`}
-                  initial={{ y: "100%", opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ duration: 2, ease: "easeInOut" }}
-                />
-              )
-          )}
+        {showDecorImages && (
+          <>
+            {imagesToShow.map(
+              (src, index) =>
+                index <= currentDecorIndex && (
+                  <motion.img
+                    key={index}
+                    src={src}
+                    alt={`decor-${index}`}
+                    className={`absolute top-0 left-0 w-full z-20 ${
+                      isMobile ? 'h-screen object-cover' : 'object-contain'
+                    }`}
+                    initial={{ y: '100%', opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1 }}
+                  />
+                ),
+            )}
+          </>
+        )}
       </AnimatePresence>
 
-      {/* Flash */}
+      {/* Flash overlay when opening gift */}
       <AnimatePresence>
         {showFlash && (
           <motion.div
@@ -243,8 +256,9 @@ const BirthdaySequence: React.FC<Props> = ({
             className="absolute inset-0 z-50 pointer-events-none"
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 1, 0] }}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
-            style={{ backgroundColor: "#fff" }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, times: [0, 0.2, 1] }}
+            style={{ backgroundColor: '#ffffff' }}
           />
         )}
       </AnimatePresence>
@@ -253,14 +267,14 @@ const BirthdaySequence: React.FC<Props> = ({
       <div className="relative z-20 flex items-center justify-center min-h-screen p-6">
         <AnimatePresence mode="wait">
           {/* Greeting */}
-          {state === "greeting" && (
+          {state === 'greeting' && (
             <motion.div
               key="greeting"
               className="text-center text-white"
-              initial={{ opacity: 0, y: 40 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -40 }}
-              transition={{ duration: 1.8, ease: "easeInOut" }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 1 }}
             >
               <h1 className="text-4xl md:text-6xl font-playfair font-bold">
                 Hey... {name} ✨
@@ -269,14 +283,14 @@ const BirthdaySequence: React.FC<Props> = ({
           )}
 
           {/* Dark */}
-          {state === "dark" && (
+          {state === 'dark' && (
             <motion.div
               key="dark"
               className="text-center text-white"
-              initial={{ opacity: 0, y: 40 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -40 }}
-              transition={{ duration: 1.8, ease: "easeInOut" }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 1 }}
             >
               <h2 className="text-3xl md:text-5xl font-playfair font-bold">
                 Why is it so dark here? 🤔
@@ -285,27 +299,29 @@ const BirthdaySequence: React.FC<Props> = ({
           )}
 
           {/* Bulb */}
-          {state === "bulb" && (
+          {state === 'bulb' && (
             <motion.div
               key="bulb"
               className="text-center text-white cursor-pointer"
-              initial={{ opacity: 0, scale: 0.6 }}
+              initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.6 }}
-              transition={{ duration: 1.5, ease: "easeInOut" }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              transition={{ duration: 0.8 }}
               onClick={handleBulbClick}
             >
               <motion.div
                 className="text-9xl mb-6 bulb-glow"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
                 animate={{
                   filter: [
-                    "drop-shadow(0 0 20px #ffd700)",
-                    "drop-shadow(0 0 40px #ffd700)",
-                    "drop-shadow(0 0 20px #ffd700)",
+                    'drop-shadow(0 0 20px #ffd700)',
+                    'drop-shadow(0 0 40px #ffd700)',
+                    'drop-shadow(0 0 20px #ffd700)',
                   ],
                 }}
                 transition={{
-                  filter: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+                  filter: { duration: 2, repeat: Infinity, ease: 'easeInOut' },
                 }}
               >
                 💡
@@ -316,15 +332,15 @@ const BirthdaySequence: React.FC<Props> = ({
             </motion.div>
           )}
 
-          {/* Room */}
-          {state === "room" && (
+          {/* Room - Decorate Button */}
+          {state === 'room' && (
             <motion.div
               key="decorate"
               className="text-center text-white"
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -30 }}
-              transition={{ duration: 1.5, ease: "easeInOut", delay: 1 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 1, delay: 1 }}
             >
               <button
                 onClick={handleDecorate}
@@ -336,15 +352,15 @@ const BirthdaySequence: React.FC<Props> = ({
             </motion.div>
           )}
 
-          {/* Cake */}
-          {state === "cake" && !showCake && (
+          {/* Bring Cake */}
+          {state === 'cake' && !showCake && (
             <motion.div
               key="bring-cake"
               className="text-center text-white"
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -30 }}
-              transition={{ duration: 1.5, ease: "easeInOut", delay: 1.5 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.8, delay: 1.5 }}
             >
               <button
                 onClick={handleBringCake}
@@ -357,21 +373,19 @@ const BirthdaySequence: React.FC<Props> = ({
           )}
 
           {/* Cake + Candles */}
-          {showCake && state === "blow" && (
+          {showCake && state === 'blow' && (
             <motion.div
               key="cake"
               className="text-center text-white"
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 50 }}
-              transition={{ duration: 1.5, ease: "easeInOut" }}
+              transition={{ duration: 1 }}
             >
               <div className="mb-6">
                 <motion.div
                   className="text-[12rem] mb-4"
-                  animate={{
-                    rotate: candlesBlown ? 0 : [0, -1, 1, 0],
-                  }}
+                  animate={{ rotate: candlesBlown ? 0 : [0, -1, 1, 0] }}
                   transition={{
                     duration: 3,
                     repeat: candlesBlown ? 0 : Infinity,
@@ -381,18 +395,25 @@ const BirthdaySequence: React.FC<Props> = ({
                 </motion.div>
                 {!candlesBlown && (
                   <div className="flex justify-center space-x-3 mb-6">
-                    {(age
-                      ? [...Array(Math.min(parseInt(age), 10))]
-                      : [...Array(5)]
-                    ).map((_, i) => (
-                      <motion.div
-                        key={i}
-                        className="text-4xl flame"
-                        style={{ animationDelay: `${i * 0.1}s` }}
-                      >
-                        🕯️
-                      </motion.div>
-                    ))}
+                    {age
+                      ? [...Array(Math.min(parseInt(age), 10))].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            className="text-4xl flame"
+                            style={{ animationDelay: `${i * 0.1}s` }}
+                          >
+                            🕯️
+                          </motion.div>
+                        ))
+                      : [...Array(5)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            className="text-4xl flame"
+                            style={{ animationDelay: `${i * 0.1}s` }}
+                          >
+                            🕯️
+                          </motion.div>
+                        ))}
                   </div>
                 )}
               </div>
@@ -408,25 +429,24 @@ const BirthdaySequence: React.FC<Props> = ({
           )}
 
           {/* Gift */}
-          {showGift && state === "gift" && !giftOpened && (
+          {showGift && state === 'gift' && !giftOpened && (
             <motion.div
               key="gift"
               className="text-center text-white cursor-pointer"
-              initial={{ opacity: 0, scale: 0.6 }}
+              initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.6 }}
-              transition={{ duration: 1.5, ease: "easeInOut" }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              transition={{ duration: 1 }}
               onClick={handleGiftClick}
             >
               <motion.div
                 className="text-[8rem] mb-6"
-                animate={{
-                  y: [0, -10, 0],
-                  rotateY: [0, 5, -5, 0],
-                }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                animate={{ y: [0, -10, 0], rotateY: [0, 5, -5, 0] }}
                 transition={{
-                  y: { duration: 2, repeat: Infinity, ease: "easeInOut" },
-                  rotateY: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                  y: { duration: 2, repeat: Infinity, ease: 'easeInOut' },
+                  rotateY: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
                 }}
               >
                 🎁
@@ -438,8 +458,8 @@ const BirthdaySequence: React.FC<Props> = ({
             </motion.div>
           )}
 
-          {/* Credits */}
-          {state === "credits" && (
+          {/* Credits with automatic upward scroll */}
+          {state === 'credits' && (
             <motion.div
               key="credits"
               className="absolute inset-0 flex items-center justify-center z-40"
@@ -447,49 +467,41 @@ const BirthdaySequence: React.FC<Props> = ({
               animate={{ opacity: 1 }}
               transition={{ duration: 1, delay: 0.2 }}
             >
-              {/* Fireworks */}
-              <Firework side="left" />
-              <Firework side="right" />
-
-              <div className="bg-black/70 backdrop-blur-sm rounded-2xl p-8 w-full max-w-3xl max-h-[80vh] overflow-hidden relative z-20">
+              {/* backdrop card */}
+              <div className="bg-black/70 backdrop-blur-sm rounded-2xl p-8 w-full max-w-3xl max-h-[80vh] overflow-hidden">
                 <div className="relative w-full h-[60vh] overflow-hidden">
                   <motion.div
                     className="absolute left-0 w-full"
-                    initial={{ y: "100%" }}
-                    animate={{ y: "-150%" }}
-                    transition={{ duration: 28, ease: "easeInOut" }}
+                    initial={{ y: '100%' }}
+                    animate={{ y: '-120%' }}
+                    transition={{ duration: 12, ease: 'linear' }}
                   >
-                    <div className="text-center text-white space-y-10 p-6">
-                      <h2 className="text-4xl md:text-6xl font-playfair font-bold mb-6">
-                        🎉 Happy Birthday {name}! 🎉
+                    <div className="text-white text-center px-6">
+                      <h2 className="text-3xl md:text-4xl font-playfair font-bold mb-6 text-pink-300">
+                        Happy Birthday, {name}! 🎉
                       </h2>
-                      <p className="text-xl md:text-2xl font-playfair leading-relaxed">
-                        {message}
-                      </p>
-                      <div className="grid grid-cols-2 gap-6 mt-10">
-                        {images.map((img, i) => (
-                          <motion.div
-                            key={i}
-                            className="rounded-xl overflow-hidden shadow-lg"
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{
-                              duration: 1.8,
-                              delay: i * 0.6,
-                              ease: "easeInOut",
-                            }}
-                          >
-                            <img
-                              src={img.dataUrl}
-                              alt={img.name}
-                              className="w-full h-48 object-cover"
-                            />
-                          </motion.div>
-                        ))}
+                      {age && (
+                        <p className="text-xl md:text-2xl mb-6 text-yellow-300">
+                          Welcome to {age}! ✨
+                        </p>
+                      )}
+
+                      <div className="text-lg md:text-xl leading-relaxed whitespace-pre-line mb-8">
+                        {message ||
+                          'Wishing you all the happiness in the world on your special day! 💖'}
                       </div>
-                      <p className="mt-12 text-lg md:text-xl font-playfair">
-                        Made with ❤️ just for you ✨
-                      </p>
+
+                      <div className="text-6xl mb-6">🎂💖✨🎉💫</div>
+                      <div className="text-2xl mb-24">💕 With Love 💕</div>
+
+                      <div className="text-lg md:text-xl leading-relaxed whitespace-pre-line mb-8">
+                        From all of us — We hope your day is filled with love,
+                        laughs, and cake.
+                      </div>
+                      <div className="text-6xl mb-6">🌟🌟🌟</div>
+                      <div className="text-2xl">— Made with ❤️</div>
+
+                      <div style={{ height: 120 }} />
                     </div>
                   </motion.div>
                 </div>

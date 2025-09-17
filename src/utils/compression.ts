@@ -9,7 +9,8 @@ interface Payload {
   createdAt: string;
 }
 
-export const compressImage = (file: File, maxDimension = 1200, quality = 0.8): Promise<string> => {
+// Slightly stronger defaults to keep URLs smaller
+export const compressImage = (file: File, maxDimension = 1000, quality = 0.72): Promise<string> => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -62,8 +63,8 @@ export const compressImage = (file: File, maxDimension = 1200, quality = 0.8): P
 export const encodePayload = (payload: Payload): string => {
   const jsonString = JSON.stringify(payload);
   const compressed = LZString.compressToEncodedURIComponent(jsonString);
-  // Use URL hash to avoid massive query strings causing 431 via Referer headers
-  return `${window.location.origin}/view#data=${compressed}`;
+  // Hash router path with query after the route: https://host/#/view?data=...
+  return `${window.location.origin}/#/view?data=${compressed}`;
 };
 
 export const decodePayload = (encodedData: string): Payload => {

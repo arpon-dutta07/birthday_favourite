@@ -23,15 +23,22 @@ const ViewPage: React.FC = () => {
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    // Prefer #data=... to avoid massive query strings in Referer; fallback to ?data=...
+    // With HashRouter, data will be in the query part after #/view
     const getDataParam = (): string | null => {
+      // Priority: query string in hash route
+      const params = new URLSearchParams(window.location.search);
+      const fromSearch = params.get('data');
+      if (fromSearch) return fromSearch;
+
+      // Fallback: parse hash manually for old links of format #data=...
       const hash = window.location.hash || '';
-      if (hash.startsWith('#')) {
-        const raw = hash.slice(1);
-        const params = new URLSearchParams(raw.startsWith('?') ? raw.slice(1) : raw);
-        const fromHash = params.get('data');
+      if (hash.includes('data=')) {
+        const afterHash = hash.replace(/^#/, '');
+        const hashParams = new URLSearchParams(afterHash.startsWith('?') ? afterHash.slice(1) : afterHash);
+        const fromHash = hashParams.get('data');
         if (fromHash) return fromHash;
       }
+
       return searchParams.get('data');
     };
 
@@ -95,7 +102,7 @@ const ViewPage: React.FC = () => {
           </h1>
           <p className="text-red-200 mb-6">{error}</p>
           <button
-            onClick={() => window.location.href = '/'}
+            onClick={() => (window.location.hash = '#/')}
             className="btn-romantic text-white font-semibold py-3 px-6 rounded-lg"
           >
             Create New Surprise

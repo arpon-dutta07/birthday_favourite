@@ -30,7 +30,7 @@ const ShareLinkModal: React.FC<Props> = ({ isOpen, onClose, shareUrl }) => {
   };
 
   const openPreview = () => {
-    window.open(shareUrl, '_blank');
+    window.open(shareUrl, '_blank', 'noopener');
   };
 
   return (
