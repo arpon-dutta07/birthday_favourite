@@ -117,12 +117,19 @@ const CreateForm: React.FC = () => {
 
       const encodedUrl = encodePayload(payload);
       
-      // Check URL length and warn if too long
-      if (encodedUrl.length > 32768) {
-        setWarnings(['Warning: URL is very long due to large images. Some browsers may have issues.']);
+      // Create a shorter URL if the original is too long
+      let finalUrl = encodedUrl;
+      if (encodedUrl.length > 2000) {
+        try {
+          const { URLShortener } = await import('../utils/urlShortener');
+          finalUrl = URLShortener.createShortUrl(encodedUrl);
+          setWarnings(['Created shorter URL for better sharing!']);
+        } catch (error) {
+          setWarnings(['Warning: URL is long due to large images. Consider using smaller images.']);
+        }
       }
 
-      setShareUrl(encodedUrl);
+      setShareUrl(finalUrl);
       setShowShareModal(true);
     } catch (error) {
       setWarnings(['Failed to generate link. Try reducing image sizes.']);
