@@ -210,13 +210,13 @@ const CreateForm: React.FC = () => {
             <textarea
               value={formData.message}
               onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
-              maxLength={500}
+              maxLength={2000}
               rows={4}
               className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-white/60 focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-400/50 resize-none"
               placeholder="Write your heartfelt birthday message... (emojis welcome! 🎂💖)"
             />
             <div className="text-right text-sm text-white/60 mt-1">
-              {formData.message.length}/500
+              {formData.message.length}/2000
             </div>
           </div>
 

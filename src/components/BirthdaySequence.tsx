@@ -188,17 +188,17 @@ const BirthdaySequence: React.FC<Props> = ({
   };
 
   const desktopImages = [
-    '/src/assets/ballons.png',
-    '/src/assets/popup.png',
-    '/src/assets/happy.png',
+    '/assets/ballons.png',
+    '/assets/popup.png',
+    '/assets/happy.png',
   ];
   const mobileImages = [
-    '/src/assets/mobile (1).png',
-    '/src/assets/mobile (3).png',
-    '/src/assets/mobile (2).png',
+    '/assets/mobile (1).png',
+    '/assets/mobile (3).png',
+    '/assets/mobile (2).png',
   ];
   const imagesToShow = isMobile ? mobileImages : desktopImages;
-  const roomImage = '/src/assets/room.jpg';
+  const roomImage = '/assets/room.jpg';
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
@@ -509,9 +509,9 @@ const BirthdaySequence: React.FC<Props> = ({
                     transition={{ duration: 1.5, ease: 'easeOut', delay: 0.5 }}
                   >
                     <img 
-                      src="/src/assets/mobile (1).png" 
-                      alt="Decoration Left"
-                      className="w-90 h-190"
+                    src="/assets/mobile (1).png" 
+                    alt="Decoration Left"
+                    className="w-48 h-auto"
                     />
                   </motion.div>
                   
@@ -523,9 +523,9 @@ const BirthdaySequence: React.FC<Props> = ({
                     transition={{ duration: 1.5, ease: 'easeOut', delay: 0.7 }}
                   >
                     <img 
-                      src="/src/assets/mobile (1).png" 
-                      alt="Decoration Right"
-                      className="w-90 h-190"
+                    src="/assets/mobile (1).png" 
+                    alt="Decoration Right"
+                    className="w-48 h-auto"
                     />
                   </motion.div>
                 </>
