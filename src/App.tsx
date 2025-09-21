@@ -1,24 +1,8 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useParams, Navigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import CreateForm from './components/CreateForm';
 import ViewPage from './components/ViewPage';
-import { URLShortener } from './utils/urlShortener';
 import './App.css';
-
-// Component to handle short URL redirects
-const ShortUrlRedirect: React.FC = () => {
-  const { shortId } = useParams<{ shortId: string }>();
-  
-  if (shortId) {
-    const resolvedUrl = URLShortener.resolveShortUrl(shortId);
-    if (resolvedUrl) {
-      return <Navigate to={resolvedUrl} replace />;
-    }
-  }
-  
-  // If short URL not found, redirect to home
-  return <Navigate to="/" replace />;
-};
 
 function App() {
   return (
@@ -27,7 +11,7 @@ function App() {
         <Routes>
           <Route path="/" element={<CreateForm />} />
           <Route path="/view" element={<ViewPage />} />
-          <Route path="/s/:shortId" element={<ShortUrlRedirect />} />
+          <Route path="/view/:shortId" element={<ViewPage />} />
         </Routes>
       </div>
     </Router>
