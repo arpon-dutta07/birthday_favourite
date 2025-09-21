@@ -115,24 +115,16 @@ const CreateForm: React.FC = () => {
         createdAt: new Date().toISOString()
       };
 
-      const encodedUrl = encodePayload(payload);
+      // Use the new storage system instead of URL encoding
+      const { storeBirthdayData } = await import('../utils/dataStorage');
+      const shareableUrl = await storeBirthdayData(payload);
       
-      // Create a shorter URL if the original is too long
-      let finalUrl = encodedUrl;
-      if (encodedUrl.length > 2000) {
-        try {
-          const { URLShortener } = await import('../utils/urlShortener');
-          finalUrl = URLShortener.createShortUrl(encodedUrl);
-          setWarnings(['Created shorter URL for better sharing!']);
-        } catch (error) {
-          setWarnings(['Warning: URL is long due to large images. Consider using smaller images.']);
-        }
-      }
-
-      setShareUrl(finalUrl);
+      setShareUrl(shareableUrl);
       setShowShareModal(true);
+      setWarnings(['🎉 Magical link created successfully! This link will work perfectly across all devices.']);
     } catch (error) {
-      setWarnings(['Failed to generate link. Try reducing image sizes.']);
+      console.error('Failed to store data:', error);
+      setWarnings(['Failed to generate link. Please try again or use smaller images.']);
     } finally {
       setIsGenerating(false);
     }
