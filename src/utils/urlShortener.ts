@@ -1,55 +1,38 @@
-// Simple URL shortener using base conversion for local storage
+// URL shortener that creates shareable links without relying on localStorage
 export class URLShortener {
-  private static STORAGE_KEY = 'birthday_urls';
-  private static BASE_URL = '/s/';
-
-  // Generate a short ID using base36
-  private static generateShortId(): string {
-    return Math.random().toString(36).substring(2, 8);
-  }
-
-  // Store the full URL and return a short link
+  // Instead of using localStorage-based shortening, we'll focus on compression
+  // and accept longer URLs to ensure cross-device compatibility
+  
   static createShortUrl(fullUrl: string): string {
-    const shortId = this.generateShortId();
-    const storedUrls = this.getStoredUrls();
+    // For cross-device compatibility, we should avoid localStorage-based shortening
+    // Instead, return the full URL - modern browsers and messaging apps can handle long URLs
+    return fullUrl;
     
-    // Extract just the data parameter
-    const urlObj = new URL(fullUrl);
-    const data = urlObj.searchParams.get('data');
-    
-    if (data) {
-      storedUrls[shortId] = data;
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(storedUrls));
-      return `${window.location.origin}${this.BASE_URL}${shortId}`;
-    }
-    
-    return fullUrl; // Fallback to original URL
+    // Alternative approach: If URL is still too long, we could implement
+    // server-based shortening or use a third-party service, but for now
+    // we prioritize functionality over URL length
   }
 
-  // Retrieve the full URL from short ID
+  // This method is kept for backward compatibility with existing short URLs
+  // but will only work for URLs created on the same device
   static resolveShortUrl(shortId: string): string | null {
-    const storedUrls = this.getStoredUrls();
-    const data = storedUrls[shortId];
-    
-    if (data) {
-      return `/view?data=${data}`;
+    try {
+      const stored = localStorage.getItem('birthday_urls');
+      const storedUrls = stored ? JSON.parse(stored) : {};
+      const data = storedUrls[shortId];
+      
+      if (data) {
+        return `/view?data=${data}`;
+      }
+    } catch {
+      // Ignore errors and return null
     }
     
     return null;
   }
 
-  // Get all stored URLs
-  private static getStoredUrls(): Record<string, string> {
-    try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
-      return stored ? JSON.parse(stored) : {};
-    } catch {
-      return {};
-    }
-  }
-
   // Clean up old entries (optional, for maintenance)
   static cleanup(): void {
-    localStorage.removeItem(this.STORAGE_KEY);
+    localStorage.removeItem('birthday_urls');
   }
 }
