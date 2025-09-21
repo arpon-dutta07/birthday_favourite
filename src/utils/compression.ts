@@ -10,7 +10,7 @@ interface Payload {
 }
 
 // More aggressive compression for shorter URLs
-export const compressImage = (file: File, maxDimension = 800, quality = 0.65): Promise<string> => {
+export const compressImage = (file: File, maxDimension = 600, quality = 0.5): Promise<string> => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
