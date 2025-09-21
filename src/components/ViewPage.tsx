@@ -54,7 +54,10 @@ const ViewPage: React.FC = () => {
       setPayload(decodedPayload);
       setState('intro');
     } catch (err) {
-      setError('Failed to decode birthday surprise. The link may be corrupted.');
+      console.error('Decoding error:', err);
+      console.error('Data length:', data.length);
+      console.error('Data sample:', data.substring(0, 100));
+      setError(`Failed to decode birthday surprise. The link may be corrupted. Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
       setState('error');
     }
     // Run once on mount
