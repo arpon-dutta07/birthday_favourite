@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
 import { decodePayload } from '../utils/compression';
@@ -19,7 +19,6 @@ type ViewState = 'loading' | 'error' | 'intro' | 'birthday' | 'completed';
 
 const ViewPage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const { encodedData } = useParams<{ encodedData: string }>();
   const [state, setState] = useState<ViewState>('loading');
   const [payload, setPayload] = useState<Payload | null>(null);
   const [error, setError] = useState<string>('');
@@ -43,20 +42,13 @@ const ViewPage: React.FC = () => {
       try {
         let data: Payload | null = null;
         
-        // Use encodedData from URL params
+        // Get encoded data from URL (query params or hash)
+        const encodedData = getEncodedDataFromAnySource();
         if (encodedData) {
-          data = decodePayload(encodedData);
-        }
-
-        // Fallback: support legacy encoded links
-        if (!data) {
-          const legacyData = getEncodedDataFromAnySource();
-          if (legacyData) {
-            try {
-              data = decodePayload(legacyData);
-            } catch (decodeError) {
-              console.warn('Decoding of legacy encoded URL failed:', decodeError);
-            }
+          try {
+            data = decodePayload(encodedData);
+          } catch (decodeError) {
+            console.warn('Decoding failed:', decodeError);
           }
         }
 
@@ -77,7 +69,7 @@ const ViewPage: React.FC = () => {
 
     loadBirthdayData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [encodedData]);
+  }, []);
 
   const handleIntroComplete = () => {
     setState('birthday');

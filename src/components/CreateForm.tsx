@@ -49,8 +49,8 @@ const CreateForm: React.FC = () => {
       if (!file.type.startsWith('image/')) continue;
       
       try {
-        // Slightly stronger compression to reduce URL size
-        const compressedDataUrl = await compressImage(file, 600, 0.45);
+        // Stronger compression to reduce URL size for sharing
+        const compressedDataUrl = await compressImage(file, 400, 0.3);
         newImages.push({
           id: Date.now() + Math.random().toString(),
           name: file.name,
@@ -81,7 +81,7 @@ const CreateForm: React.FC = () => {
 
   const replaceImage = async (id: string, file: File) => {
     try {
-      const compressedDataUrl = await compressImage(file);
+      const compressedDataUrl = await compressImage(file, 400, 0.3);
       setFormData(prev => ({
         ...prev,
         images: prev.images.map(img => 
@@ -117,7 +117,8 @@ const CreateForm: React.FC = () => {
       };
 
       const compressed = encodePayload(payload);
-      const shareableUrl = `${window.location.origin}/surprise/${compressed}`;
+      // Use hash-based URL for better compatibility and shorter sharing
+      const shareableUrl = `${window.location.origin}/view#data=${compressed}`;
       
       setShareUrl(shareableUrl);
       setShowShareModal(true);

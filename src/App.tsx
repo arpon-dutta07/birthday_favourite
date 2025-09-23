@@ -11,7 +11,6 @@ function App() {
         <Routes>
           <Route path="/" element={<CreateForm />} />
           <Route path="/view" element={<ViewPage />} />
-          <Route path="/surprise/:encodedData" element={<ViewPage />} />
         </Routes>
       </div>
     </Router>
