@@ -116,8 +116,9 @@ const CreateForm: React.FC = () => {
         createdAt: new Date().toISOString()
       };
 
-      // Use URL encoding (LZString/Base64) for fully shareable links
-      const shareableUrl = encodePayload(payload);
+      // Store server-side, return short ID
+      const { storeBirthdayData } = await import('../utils/dataStorage');
+      const shareableUrl = await storeBirthdayData(payload);
       
       setShareUrl(shareableUrl);
       setShowShareModal(true);
