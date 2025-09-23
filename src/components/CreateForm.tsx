@@ -49,7 +49,8 @@ const CreateForm: React.FC = () => {
       if (!file.type.startsWith('image/')) continue;
       
       try {
-        const compressedDataUrl = await compressImage(file);
+        // Slightly stronger compression to reduce URL size
+        const compressedDataUrl = await compressImage(file, 600, 0.45);
         newImages.push({
           id: Date.now() + Math.random().toString(),
           name: file.name,
