@@ -68,24 +68,41 @@ export const storeBirthdayData = async (data: BirthdayData): Promise<string> => 
       throw new Error(await response.text());
     }
 
+    // Some hosts may accidentally return HTML with 200. Guard against non-JSON.
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error('Non-JSON response from API');
+    }
+
     const { id } = await response.json();
-    return `${window.location.origin}/view/${id}`;
+
+    // Redundant link: shortId path + embedded hash payload for offline/failed API fetches
+    return `${window.location.origin}/view/${id}#?data=${compressed}&v=2`;
   } catch (e) {
-    // Local dev fallback: no API available → return encoded URL directly
+    // Fallback: return self-contained encoded URL directly (works everywhere)
     return buildEncodedLink(data);
   }
 };
 
 // Retrieve birthday data from short ID via serverless API
 export const retrieveBirthdayData = async (shortId: string): Promise<BirthdayData | null> => {
-  const response = await fetch(`/api/surprise/${shortId}`);
-  if (!response.ok) return null;
+  try {
+    const response = await fetch(`/api/surprise/${shortId}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-  const { payload } = await response.json();
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error('Non-JSON response');
+    }
 
-  // Decompress images (re-add prefix)
-  return {
-    ...payload,
-    images: decompressImageData(payload.images),
-  } as BirthdayData;
+    const { payload } = await response.json();
+
+    return {
+      ...payload,
+      images: decompressImageData(payload.images),
+    } as BirthdayData;
+  } catch (err) {
+    // Return null to allow caller to use hash-based fallback
+    return null;
+  }
 };
