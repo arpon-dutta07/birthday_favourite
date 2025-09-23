@@ -1,6 +1,8 @@
 import * as LZString from 'lz-string';
 
-// In-memory storage (ephemeral). Replace with a real database for production.
+export const config = { runtime: 'nodejs20.x' };
+
+// In-memory storage (ephemeral). Replace with a real database for production).
 const surpriseStorage: Map<string, string> = (globalThis as any).__SURPRISE_STORE__ || new Map<string, string>();
 if (!(globalThis as any).__SURPRISE_STORE__) {
   (globalThis as any).__SURPRISE_STORE__ = surpriseStorage;
@@ -17,16 +19,20 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    // Collect body as UTF-8 string (avoid Node Buffer types for TS compatibility)
-    const raw: string = await new Promise<string>((resolve, reject) => {
-      let data = '';
-      try { req.setEncoding && req.setEncoding('utf8'); } catch {}
-      req.on('data', (chunk: any) => { data += chunk; });
-      req.on('end', () => resolve(data));
-      req.on('error', (err: Error) => reject(err));
-    });
+    // Prefer pre-parsed body (Vercel/Next parses JSON when header is set)
+    let body = req.body;
 
-    const body = raw ? JSON.parse(raw) : {};
+    // Fallback: manually parse stream if body is missing
+    if (!body) {
+      const raw: string = await new Promise<string>((resolve, reject) => {
+        let data = '';
+        try { req.setEncoding && req.setEncoding('utf8'); } catch {}
+        req.on('data', (chunk: any) => { data += chunk; });
+        req.on('end', () => resolve(data));
+        req.on('error', (err: Error) => reject(err));
+      });
+      body = raw ? JSON.parse(raw) : {};
+    }
 
     // Accept either a pre-compressed string or a payload object
     let compressed: string | null = null;
