@@ -1,6 +1,6 @@
 import * as LZString from 'lz-string';
 
-const surpriseStorage: Map<string, string> = (global as any).__SURPRISE_STORE__ || new Map();
+const surpriseStorage: Map<string, string> = (globalThis as any).__SURPRISE_STORE__ || new Map<string, string>();
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'GET') {
@@ -9,7 +9,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { id } = req.query || {};
+    const { id } = (req.query || {}) as { id?: string };
     if (!id || typeof id !== 'string') {
       res.status(400).json({ error: 'Missing id' });
       return;

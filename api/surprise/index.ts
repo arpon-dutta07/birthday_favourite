@@ -1,10 +1,9 @@
-import type { IncomingMessage, ServerResponse } from 'http';
 import * as LZString from 'lz-string';
 
 // In-memory storage (ephemeral). Replace with a real database for production.
-const surpriseStorage: Map<string, string> = (global as any).__SURPRISE_STORE__ || new Map();
-if (!(global as any).__SURPRISE_STORE__) {
-  (global as any).__SURPRISE_STORE__ = surpriseStorage;
+const surpriseStorage: Map<string, string> = (globalThis as any).__SURPRISE_STORE__ || new Map<string, string>();
+if (!(globalThis as any).__SURPRISE_STORE__) {
+  (globalThis as any).__SURPRISE_STORE__ = surpriseStorage;
 }
 
 function generateId(): string {
@@ -18,14 +17,15 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const chunks: Buffer[] = [];
-    await new Promise<void>((resolve, reject) => {
-      req.on('data', (chunk: Buffer) => chunks.push(chunk));
-      req.on('end', () => resolve());
+    // Collect body as UTF-8 string (avoid Node Buffer types for TS compatibility)
+    const raw: string = await new Promise<string>((resolve, reject) => {
+      let data = '';
+      try { req.setEncoding && req.setEncoding('utf8'); } catch {}
+      req.on('data', (chunk: any) => { data += chunk; });
+      req.on('end', () => resolve(data));
       req.on('error', (err: Error) => reject(err));
     });
 
-    const raw = Buffer.concat(chunks).toString('utf-8');
     const body = raw ? JSON.parse(raw) : {};
 
     // Accept either a pre-compressed string or a payload object
