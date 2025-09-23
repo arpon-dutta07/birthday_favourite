@@ -68,6 +68,15 @@ app.get('/api/surprise/:id', async (req, res) => {
     }
 
     const payload = JSON.parse(json);
+    
+    // Decompress image data if needed
+    if (payload.images && Array.isArray(payload.images)) {
+      payload.images = payload.images.map(img => ({
+        ...img,
+        dataUrl: img.dataUrl.startsWith('data:') ? img.dataUrl : `data:${img.mimeType || 'image/jpeg'};base64,${img.dataUrl}`,
+      }));
+    }
+    
     res.status(200).json({ payload });
   } catch (err) {
     res.status(500).json({ error: err?.message || 'Internal Server Error' });

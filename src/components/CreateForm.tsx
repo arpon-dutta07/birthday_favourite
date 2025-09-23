@@ -117,8 +117,12 @@ const CreateForm: React.FC = () => {
         createdAt: new Date().toISOString()
       };
 
+      console.log('CreateForm: Generating link with payload:', payload);
+
       // Use server-side storage to get a short, shareable link
       const shareableUrl = await storeBirthdayData(payload as any);
+
+      console.log('CreateForm: Generated shareable URL:', shareableUrl);
 
       setShareUrl(shareableUrl);
       setShowShareModal(true);

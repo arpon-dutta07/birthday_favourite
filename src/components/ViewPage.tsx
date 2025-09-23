@@ -29,29 +29,42 @@ const ViewPage: React.FC = () => {
 
   useEffect(() => {
     const loadBirthdayData = async () => {
+      console.log('ViewPage: Loading birthday data for ID:', id);
       try {
         let data: Payload | null = null;
 
         // Fetch from API using short ID
         const shortId = id;
         if (shortId) {
+          console.log('ViewPage: Fetching from API with shortId:', shortId);
           try {
             const res = await fetch(`/api/surprise/${shortId}`);
+            console.log('ViewPage: API response status:', res.status);
+            console.log('ViewPage: API response content-type:', res.headers.get('content-type'));
+            
             if (res.ok && (res.headers.get('content-type') || '').includes('application/json')) {
-              const { payload } = await res.json();
-              data = payload as Payload;
+              const responseData = await res.json();
+              console.log('ViewPage: API response data:', responseData);
+              data = responseData.payload as Payload;
+              console.log('ViewPage: Parsed payload:', data);
+            } else {
+              console.log('ViewPage: API response not OK or not JSON');
             }
           } catch (e) {
-            // ignore; handled below
+            console.error('ViewPage: API fetch error:', e);
           }
+        } else {
+          console.log('ViewPage: No shortId provided');
         }
 
         if (!data) {
+          console.log('ViewPage: No data found, showing error');
           setError('No birthday surprise found. The link may be invalid or expired.');
           setState('error');
           return;
         }
 
+        console.log('ViewPage: Setting payload and transitioning to intro');
         setPayload(data);
         setState('intro');
       } catch (err) {
@@ -62,8 +75,7 @@ const ViewPage: React.FC = () => {
     };
 
     loadBirthdayData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [id]);
 
   const handleIntroComplete = () => {
     setState('birthday');
