@@ -76,8 +76,8 @@ export const storeBirthdayData = async (data: BirthdayData): Promise<string> => 
 
     const { id } = await response.json();
 
-    // Redundant link: shortId path + embedded hash payload for offline/failed API fetches
-    return `${window.location.origin}/view/${id}#?data=${compressed}&v=2`;
+    // Return a clean short link for cross-device sharing
+    return `${window.location.origin}/surprise/${id}`;
   } catch (e) {
     // Fallback: return self-contained encoded URL directly (works everywhere)
     return buildEncodedLink(data);

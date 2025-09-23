@@ -1,4 +1,5 @@
 import * as LZString from 'lz-string';
+import { nanoid } from 'nanoid';
 
 export const config = { runtime: 'nodejs' };
 
@@ -9,7 +10,8 @@ if (!(globalThis as any).__SURPRISE_STORE__) {
 }
 
 function generateId(): string {
-  return Math.random().toString(36).substring(2, 10).toUpperCase();
+  // Use nanoid for URL-friendly, collision-resistant IDs
+  return nanoid(10);
 }
 
 export default async function handler(req: any, res: any) {
