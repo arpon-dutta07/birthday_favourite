@@ -30,96 +30,39 @@ const decompressImageData = (images: Array<{ name: string; dataUrl: string; id?:
   }));
 };
 
-// Store birthday data using GitHub Gist (free and reliable)
+// Store birthday data via serverless API (in-memory Map on Vercel)
 export const storeBirthdayData = async (data: BirthdayData): Promise<string> => {
-  const shortId = generateShortId();
-  
-  try {
-    // Compress the data
-    const compressedData = {
-      ...data,
-      images: compressImageData(data.images)
-    };
-    
-    // Create a GitHub Gist (anonymous, public)
-    const gistData = {
-      description: `Birthday surprise data - ${data.name}`,
-      public: false,
-      files: {
-        [`birthday_${shortId}.json`]: {
-          content: JSON.stringify(compressedData)
-        }
-      }
-    };
+  // Minify images for transport
+  const compressedData = {
+    ...data,
+    images: compressImageData(data.images),
+  };
 
-    const response = await fetch('https://api.github.com/gists', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(gistData)
-    });
+  const response = await fetch('/api/surprise', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ payload: compressedData }),
+  });
 
-    if (response.ok) {
-      const gist = await response.json();
-      // Store the mapping locally for faster retrieval
-      localStorage.setItem(`birthday_${shortId}`, gist.id);
-      return `${window.location.origin}/view/${shortId}`;
-    } else {
-      throw new Error('GitHub API failed');
-    }
-  } catch (error) {
-    console.warn('GitHub Gist storage failed, using localStorage fallback:', error);
-    
-    // Fallback to localStorage
-    try {
-      localStorage.setItem(`birthday_${shortId}`, JSON.stringify(data));
-      return `${window.location.origin}/view/${shortId}`;
-    } catch (storageError) {
-      throw new Error('Both storage methods failed. Data might be too large.');
-    }
+  if (!response.ok) {
+    const msg = await response.text();
+    throw new Error(`API error: ${msg}`);
   }
+
+  const { id } = await response.json();
+  return `${window.location.origin}/view/${id}`;
 };
 
-// Retrieve birthday data from short ID
+// Retrieve birthday data from short ID via serverless API
 export const retrieveBirthdayData = async (shortId: string): Promise<BirthdayData | null> => {
-  try {
-    // First check if we have a gist ID stored locally
-    const gistId = localStorage.getItem(`birthday_${shortId}`);
-    
-    if (gistId && gistId.length > 20) { // Gist IDs are longer than 20 chars
-      try {
-        const response = await fetch(`https://api.github.com/gists/${gistId}`);
-        if (response.ok) {
-          const gist = await response.json();
-          const fileName = Object.keys(gist.files)[0];
-          const content = gist.files[fileName].content;
-          const data = JSON.parse(content);
-          
-          // Decompress the data
-          return {
-            ...data,
-            images: decompressImageData(data.images)
-          };
-        }
-      } catch (error) {
-        console.warn('Failed to retrieve from GitHub:', error);
-      }
-    }
-    
-    // Fallback to localStorage
-    const stored = localStorage.getItem(`birthday_${shortId}`);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch (error) {
-        console.error('Failed to parse stored data:', error);
-      }
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Failed to retrieve data:', error);
-    return null;
-  }
+  const response = await fetch(`/api/surprise/${shortId}`);
+  if (!response.ok) return null;
+
+  const { payload } = await response.json();
+
+  // Decompress images (re-add prefix)
+  return {
+    ...payload,
+    images: decompressImageData(payload.images),
+  } as BirthdayData;
 };
