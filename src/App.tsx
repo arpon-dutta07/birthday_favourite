@@ -11,6 +11,7 @@ function App() {
         <Routes>
           <Route path="/" element={<CreateForm />} />
           <Route path="/view" element={<ViewPage />} />
+          <Route path="/surprise/:id" element={<ViewPage />} />
         </Routes>
       </div>
     </Router>

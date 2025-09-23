@@ -116,10 +116,19 @@ const CreateForm: React.FC = () => {
         createdAt: new Date().toISOString()
       };
 
-      const compressed = encodePayload(payload);
-      // Use hash-based URL for better compatibility and shorter sharing
-      const shareableUrl = `${window.location.origin}/view#data=${compressed}`;
-      
+      // Store compressed payload server-side and return a short ID
+      // This avoids long/fragile URLs that can break on other devices
+      const res = await fetch('/api/surprise', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload }),
+      });
+      if (!res.ok) throw new Error('Failed to create short link');
+      const { id } = await res.json();
+
+      // Short, robust link that works across devices
+      const shareableUrl = `${window.location.origin}/surprise/${id}`;
+
       setShareUrl(shareableUrl);
       setShowShareModal(true);
       setWarnings(['🎉 Link created! Share it anywhere — it works on all devices.']);

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
 import { decodePayload } from '../utils/compression';
@@ -18,6 +18,7 @@ interface Payload {
 type ViewState = 'loading' | 'error' | 'intro' | 'birthday' | 'completed';
 
 const ViewPage: React.FC = () => {
+  const { id } = useParams<{ id?: string }>();
   const [searchParams] = useSearchParams();
   const [state, setState] = useState<ViewState>('loading');
   const [payload, setPayload] = useState<Payload | null>(null);
@@ -41,14 +42,31 @@ const ViewPage: React.FC = () => {
     const loadBirthdayData = async () => {
       try {
         let data: Payload | null = null;
-        
-        // Get encoded data from URL (query params or hash)
-        const encodedData = getEncodedDataFromAnySource();
-        if (encodedData) {
+
+        // 1) Preferred: short ID route /surprise/:id → fetch from API
+        const params = (useParams() as { id?: string });
+        const shortId = params.id;
+        if (shortId) {
           try {
-            data = decodePayload(encodedData);
-          } catch (decodeError) {
-            console.warn('Decoding failed:', decodeError);
+            const res = await fetch(`/api/surprise/${shortId}`);
+            if (res.ok && (res.headers.get('content-type') || '').includes('application/json')) {
+              const { payload } = await res.json();
+              data = payload as Payload;
+            }
+          } catch (e) {
+            // continue to fallback
+          }
+        }
+
+        // 2) Fallback: legacy encoded URL
+        if (!data) {
+          const encodedData = getEncodedDataFromAnySource();
+          if (encodedData) {
+            try {
+              data = decodePayload(encodedData);
+            } catch (decodeError) {
+              console.warn('Decoding failed:', decodeError);
+            }
           }
         }
 
