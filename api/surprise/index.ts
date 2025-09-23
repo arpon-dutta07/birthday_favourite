@@ -1,6 +1,6 @@
 import * as LZString from 'lz-string';
 
-export const config = { runtime: 'nodejs20.x' };
+export const config = { runtime: 'nodejs' };
 
 // In-memory storage (ephemeral). Replace with a real database for production).
 const surpriseStorage: Map<string, string> = (globalThis as any).__SURPRISE_STORE__ || new Map<string, string>();

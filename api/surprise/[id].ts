@@ -1,6 +1,6 @@
 import * as LZString from 'lz-string';
 
-export const config = { runtime: 'nodejs20.x' };
+export const config = { runtime: 'nodejs' };
 
 const surpriseStorage: Map<string, string> = (globalThis as any).__SURPRISE_STORE__ || new Map<string, string>();
 
