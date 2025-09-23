@@ -43,20 +43,22 @@ const ViewPage: React.FC = () => {
       try {
         let data: Payload | null = null;
         
-        // Prefer directly encoded URLs for universal sharing
-        const encodedData = getEncodedDataFromAnySource();
-        if (encodedData) {
-          try {
-            const { decodePayload } = await import('../utils/compression');
-            data = decodePayload(encodedData);
-          } catch (decodeError) {
-            console.warn('Decoding of encoded URL failed:', decodeError);
-          }
+        // Prefer shortId storage via API for robust cross-device sharing
+        if (shortId) {
+          data = await retrieveBirthdayData(shortId);
         }
 
-        // If not encoded, try shortId storage (best-effort)
-        if (!data && shortId) {
-          data = await retrieveBirthdayData(shortId);
+        // Fallback: support legacy encoded links
+        if (!data) {
+          const encodedData = getEncodedDataFromAnySource();
+          if (encodedData) {
+            try {
+              const { decodePayload } = await import('../utils/compression');
+              data = decodePayload(encodedData);
+            } catch (decodeError) {
+              console.warn('Decoding of encoded URL failed:', decodeError);
+            }
+          }
         }
 
         if (!data) {
