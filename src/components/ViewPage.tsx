@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
 import IntroSlideshow from './IntroSlideshow';
 import BirthdaySequence from './BirthdaySequence';
+import { retrieveBirthdayData } from '../utils/dataStorage';
 
 interface Payload {
   name: string;
@@ -30,45 +31,30 @@ const ViewPage: React.FC = () => {
   useEffect(() => {
     const loadBirthdayData = async () => {
       console.log('ViewPage: Loading birthday data for ID:', id);
+      
+      if (!id) {
+        console.log('ViewPage: No ID provided');
+        setError('No birthday surprise ID found. The link may be invalid.');
+        setState('error');
+        return;
+      }
+
       try {
-        let data: Payload | null = null;
-
-        // Fetch from API using short ID
-        const shortId = id;
-        if (shortId) {
-          console.log('ViewPage: Fetching from API with shortId:', shortId);
-          try {
-            const res = await fetch(`/api/surprise/${shortId}`);
-            console.log('ViewPage: API response status:', res.status);
-            console.log('ViewPage: API response content-type:', res.headers.get('content-type'));
-            
-            if (res.ok && (res.headers.get('content-type') || '').includes('application/json')) {
-              const responseData = await res.json();
-              console.log('ViewPage: API response data:', responseData);
-              data = responseData.payload as Payload;
-              console.log('ViewPage: Parsed payload:', data);
-            } else {
-              console.log('ViewPage: API response not OK or not JSON');
-            }
-          } catch (e) {
-            console.error('ViewPage: API fetch error:', e);
-          }
-        } else {
-          console.log('ViewPage: No shortId provided');
-        }
-
+        console.log('ViewPage: Fetching data using retrieveBirthdayData for ID:', id);
+        const data = await retrieveBirthdayData(id);
+        
         if (!data) {
-          console.log('ViewPage: No data found, showing error');
+          console.log('ViewPage: No data returned from retrieveBirthdayData');
           setError('No birthday surprise found. The link may be invalid or expired.');
           setState('error');
           return;
         }
 
-        console.log('ViewPage: Setting payload and transitioning to intro');
-        setPayload(data);
+        console.log('ViewPage: Successfully retrieved data:', data);
+        setPayload(data as Payload);
         setState('intro');
       } catch (err) {
-        console.error('Failed to load birthday data:', err);
+        console.error('ViewPage: Error loading birthday data:', err);
         setError(`Failed to load birthday surprise. Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
         setState('error');
       }

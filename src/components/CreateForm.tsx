@@ -124,6 +124,9 @@ const CreateForm: React.FC = () => {
 
       console.log('CreateForm: Generated shareable URL:', shareableUrl);
 
+      // Small delay to ensure data is fully committed
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       setShareUrl(shareableUrl);
       setShowShareModal(true);
       setWarnings(['🎉 Link created! Share it anywhere — it works on all devices.']);

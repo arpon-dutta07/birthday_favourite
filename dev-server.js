@@ -6,12 +6,41 @@ import { nanoid } from 'nanoid';
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 
+// Add CORS headers for development
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 // In-memory storage for development
 const surpriseStorage = new Map();
+
+// Add some debugging for storage state
+setInterval(() => {
+  if (surpriseStorage.size > 0) {
+    console.log('Storage status - Size:', surpriseStorage.size, 'IDs:', Array.from(surpriseStorage.keys()));
+  }
+}, 30000); // Log every 30 seconds if there's data
 
 function generateId() {
   return nanoid(10);
 }
+
+// Test endpoint
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    status: 'Server is running', 
+    timestamp: new Date().toISOString(),
+    storageSize: surpriseStorage.size,
+    availableIds: Array.from(surpriseStorage.keys())
+  });
+});
 
 // API Routes
 app.post('/api/surprise', async (req, res) => {

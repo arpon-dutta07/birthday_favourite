@@ -29,9 +29,30 @@ const ShareLinkModal: React.FC<Props> = ({ isOpen, onClose, shareUrl }) => {
     }
   };
 
-  const openPreview = () => {
+  const openPreview = async () => {
     console.log('ShareLinkModal: Opening preview with URL:', shareUrl);
-    window.open(shareUrl, '_blank', 'noopener');
+    
+    // Extract the ID from the shareUrl to test if data exists
+    const urlParts = shareUrl.split('/');
+    const id = urlParts[urlParts.length - 1];
+    
+    try {
+      // Quick test to ensure the data exists before opening preview
+      console.log('ShareLinkModal: Testing data availability for ID:', id);
+      const testResponse = await fetch(`/api/surprise/${id}`);
+      
+      if (testResponse.ok) {
+        console.log('ShareLinkModal: Data confirmed available, opening preview');
+        window.open(shareUrl, '_blank', 'noopener');
+      } else {
+        console.error('ShareLinkModal: Data not available yet, status:', testResponse.status);
+        alert('Please wait a moment and try again. The data is still being processed.');
+      }
+    } catch (error) {
+      console.error('ShareLinkModal: Error testing data availability:', error);
+      // Fallback: try to open anyway
+      window.open(shareUrl, '_blank', 'noopener');
+    }
   };
 
   return (
