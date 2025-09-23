@@ -76,8 +76,9 @@ export const encodePayload = (payload: Payload): string => {
       }
     }
     
-    // Use clean URL with BrowserRouter and add a version identifier
-    const url = `${window.location.origin}/view?data=${compressed}&v=2`;
+    // Prefer hash-based payload so it survives sharing (some apps strip query params)
+    // Route path stays /view (for BrowserRouter), data is after # and parsed client-side
+    const url = `${window.location.origin}/view#?data=${compressed}&v=2`;
     
     // Warn if URL is very long (might get truncated)
     if (url.length > 8000) {
