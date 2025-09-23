@@ -10,10 +10,7 @@ interface BirthdayData {
   createdAt: string;
 }
 
-// Generate a short, shareable ID
-const generateShortId = (): string => {
-  return Math.random().toString(36).substring(2, 10).toUpperCase();
-};
+
 
 // Better compression specifically for images
 const compressImageData = (images: Array<{ name: string; dataUrl: string; id?: string }>): Array<{ name: string; dataUrl: string; id?: string }> => {
@@ -32,18 +29,7 @@ const decompressImageData = (images: Array<{ name: string; dataUrl: string; id?:
   }));
 };
 
-// Helper: build a purely client-side encoded URL (fallback for local dev)
-const buildEncodedLink = (data: BirthdayData): string => {
-  const minimized = {
-    ...data,
-    images: compressImageData(data.images),
-    __v: 2,
-    __imgFmt: 'image/jpeg;base64,'
-  } as any;
-  const json = JSON.stringify(minimized);
-  const compressed = LZString.compressToEncodedURIComponent(json);
-  return `${window.location.origin}/view#?data=${compressed}&v=2`;
-};
+
 
 // Store birthday data via serverless API (in-memory Map on Vercel)
 export const storeBirthdayData = async (data: BirthdayData): Promise<string> => {
@@ -79,8 +65,8 @@ export const storeBirthdayData = async (data: BirthdayData): Promise<string> => 
     // Return a clean short link for cross-device sharing
     return `${window.location.origin}/surprise/${id}`;
   } catch (e) {
-    // Fallback: return self-contained encoded URL directly (works everywhere)
-    return buildEncodedLink(data);
+    // No fallback to encoded URLs; enforce short-link approach only
+    throw e;
   }
 };
 

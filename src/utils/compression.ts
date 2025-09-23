@@ -88,16 +88,7 @@ export const encodePayload = (payload: Payload): string => {
       }
     }
 
-    // Prefer hash-based payload so it survives sharing (some apps strip query params)
-    // Route path stays /view (for BrowserRouter), data is after # and parsed client-side
-    const url = `${window.location.origin}/view#?data=${compressed}&v=2`;
-
-    // Warn if URL is very long (might get truncated)
-    if (url.length > 8000) {
-      console.warn('URL is very long and may get truncated when shared:', url.length);
-    }
-
-    return url;
+    return compressed;
   } catch (error) {
     throw new Error('Failed to encode payload: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }

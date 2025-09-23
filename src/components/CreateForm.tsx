@@ -116,9 +116,8 @@ const CreateForm: React.FC = () => {
         createdAt: new Date().toISOString()
       };
 
-      // Store server-side, return short ID
-      const { storeBirthdayData } = await import('../utils/dataStorage');
-      const shareableUrl = await storeBirthdayData(payload);
+      const compressed = encodePayload(payload);
+      const shareableUrl = `${window.location.origin}/surprise/${compressed}`;
       
       setShareUrl(shareableUrl);
       setShowShareModal(true);

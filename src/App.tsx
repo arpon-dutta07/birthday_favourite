@@ -11,9 +11,7 @@ function App() {
         <Routes>
           <Route path="/" element={<CreateForm />} />
           <Route path="/view" element={<ViewPage />} />
-          <Route path="/view/:shortId" element={<ViewPage />} />
-          {/* New short-link route for cross-device sharing */}
-          <Route path="/surprise/:shortId" element={<ViewPage />} />
+          <Route path="/surprise/:encodedData" element={<ViewPage />} />
         </Routes>
       </div>
     </Router>

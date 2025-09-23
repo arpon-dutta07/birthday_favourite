@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
-import { retrieveBirthdayData } from '../utils/dataStorage';
+import { decodePayload } from '../utils/compression';
 import IntroSlideshow from './IntroSlideshow';
 import BirthdaySequence from './BirthdaySequence';
 
@@ -19,7 +19,7 @@ type ViewState = 'loading' | 'error' | 'intro' | 'birthday' | 'completed';
 
 const ViewPage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const { shortId } = useParams<{ shortId: string }>();
+  const { encodedData } = useParams<{ encodedData: string }>();
   const [state, setState] = useState<ViewState>('loading');
   const [payload, setPayload] = useState<Payload | null>(null);
   const [error, setError] = useState<string>('');
@@ -43,26 +43,25 @@ const ViewPage: React.FC = () => {
       try {
         let data: Payload | null = null;
         
-        // Prefer shortId storage via API for robust cross-device sharing
-        if (shortId) {
-          data = await retrieveBirthdayData(shortId);
+        // Use encodedData from URL params
+        if (encodedData) {
+          data = decodePayload(encodedData);
         }
 
         // Fallback: support legacy encoded links
         if (!data) {
-          const encodedData = getEncodedDataFromAnySource();
-          if (encodedData) {
+          const legacyData = getEncodedDataFromAnySource();
+          if (legacyData) {
             try {
-              const { decodePayload } = await import('../utils/compression');
-              data = decodePayload(encodedData);
+              data = decodePayload(legacyData);
             } catch (decodeError) {
-              console.warn('Decoding of encoded URL failed:', decodeError);
+              console.warn('Decoding of legacy encoded URL failed:', decodeError);
             }
           }
         }
 
         if (!data) {
-          setError('No birthday surprise found. The link may be invalid or expired.');
+          setError('No birthday surprise found. The link may be invalid.');
           setState('error');
           return;
         }
@@ -78,7 +77,7 @@ const ViewPage: React.FC = () => {
 
     loadBirthdayData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shortId]);
+  }, [encodedData]);
 
   const handleIntroComplete = () => {
     setState('birthday');
