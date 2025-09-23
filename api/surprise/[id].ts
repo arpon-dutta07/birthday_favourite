@@ -1,5 +1,7 @@
 import * as LZString from 'lz-string';
 
+export const config = { runtime: 'nodejs20.x' };
+
 const surpriseStorage: Map<string, string> = (globalThis as any).__SURPRISE_STORE__ || new Map<string, string>();
 
 export default async function handler(req: any, res: any) {
