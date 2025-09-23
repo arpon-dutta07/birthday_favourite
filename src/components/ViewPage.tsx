@@ -24,26 +24,39 @@ const ViewPage: React.FC = () => {
   const [payload, setPayload] = useState<Payload | null>(null);
   const [error, setError] = useState<string>('');
 
+  // Helper to parse legacy hash-based URLs (if any)
+  const getEncodedDataFromAnySource = (): string | null => {
+    // 1) Query param ?data=
+    const qp = searchParams.get('data');
+    if (qp) return qp;
+
+    // 2) Hash fragment #/view?data=...
+    const hash = window.location.hash || '';
+    const hashMatch = hash.match(/[?&]data=([^&]+)/);
+    if (hashMatch && hashMatch[1]) return decodeURIComponent(hashMatch[1]);
+
+    return null;
+  };
+
   useEffect(() => {
     const loadBirthdayData = async () => {
       try {
         let data: Payload | null = null;
         
-        // Check if we have a shortId from the URL path
-        if (shortId) {
-          data = await retrieveBirthdayData(shortId);
-        } else {
-          // Fallback: check for old-style encoded data in query params
-          const encodedData = searchParams.get('data');
-          if (encodedData) {
-            // Try to decode using the old method for backward compatibility
-            try {
-              const { decodePayload } = await import('../utils/compression');
-              data = decodePayload(encodedData);
-            } catch (decodeError) {
-              console.warn('Old-style decoding failed:', decodeError);
-            }
+        // Prefer directly encoded URLs for universal sharing
+        const encodedData = getEncodedDataFromAnySource();
+        if (encodedData) {
+          try {
+            const { decodePayload } = await import('../utils/compression');
+            data = decodePayload(encodedData);
+          } catch (decodeError) {
+            console.warn('Decoding of encoded URL failed:', decodeError);
           }
+        }
+
+        // If not encoded, try shortId storage (best-effort)
+        if (!data && shortId) {
+          data = await retrieveBirthdayData(shortId);
         }
 
         if (!data) {
