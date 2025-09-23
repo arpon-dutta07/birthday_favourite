@@ -1,3 +1,5 @@
+import * as LZString from 'lz-string';
+
 // Simple and reliable data storage using multiple strategies
 interface BirthdayData {
   name: string;
@@ -30,6 +32,19 @@ const decompressImageData = (images: Array<{ name: string; dataUrl: string; id?:
   }));
 };
 
+// Helper: build a purely client-side encoded URL (fallback for local dev)
+const buildEncodedLink = (data: BirthdayData): string => {
+  const minimized = {
+    ...data,
+    images: compressImageData(data.images),
+    __v: 2,
+    __imgFmt: 'image/jpeg;base64,'
+  } as any;
+  const json = JSON.stringify(minimized);
+  const compressed = LZString.compressToEncodedURIComponent(json);
+  return `${window.location.origin}/view#?data=${compressed}&v=2`;
+};
+
 // Store birthday data via serverless API (in-memory Map on Vercel)
 export const storeBirthdayData = async (data: BirthdayData): Promise<string> => {
   // Minify images for transport
@@ -38,19 +53,27 @@ export const storeBirthdayData = async (data: BirthdayData): Promise<string> => 
     images: compressImageData(data.images),
   };
 
-  const response = await fetch('/api/surprise', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ payload: compressedData }),
-  });
+  // Pre-compress payload to drastically reduce request size
+  const json = JSON.stringify(compressedData);
+  const compressed = LZString.compressToEncodedURIComponent(json);
 
-  if (!response.ok) {
-    const msg = await response.text();
-    throw new Error(`API error: ${msg}`);
+  try {
+    const response = await fetch('/api/surprise', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ compressed }),
+    });
+
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+
+    const { id } = await response.json();
+    return `${window.location.origin}/view/${id}`;
+  } catch (e) {
+    // Local dev fallback: no API available → return encoded URL directly
+    return buildEncodedLink(data);
   }
-
-  const { id } = await response.json();
-  return `${window.location.origin}/view/${id}`;
 };
 
 // Retrieve birthday data from short ID via serverless API
