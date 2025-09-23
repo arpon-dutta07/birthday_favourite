@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
-import { decodePayload } from '../utils/compression';
 import IntroSlideshow from './IntroSlideshow';
 import BirthdaySequence from './BirthdaySequence';
 
@@ -19,22 +18,12 @@ type ViewState = 'loading' | 'error' | 'intro' | 'birthday' | 'completed';
 
 const ViewPage: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
-  const [searchParams] = useSearchParams();
   const [state, setState] = useState<ViewState>('loading');
   const [payload, setPayload] = useState<Payload | null>(null);
   const [error, setError] = useState<string>('');
 
-  // Helper to parse legacy hash-based URLs (if any)
+  // Legacy URL parsing removed — we now rely only on short IDs
   const getEncodedDataFromAnySource = (): string | null => {
-    // 1) Query param ?data=
-    const qp = searchParams.get('data');
-    if (qp) return qp;
-
-    // 2) Hash fragment #/view?data=...
-    const hash = window.location.hash || '';
-    const hashMatch = hash.match(/[?&]data=([^&]+)/);
-    if (hashMatch && hashMatch[1]) return decodeURIComponent(hashMatch[1]);
-
     return null;
   };
 
@@ -43,9 +32,8 @@ const ViewPage: React.FC = () => {
       try {
         let data: Payload | null = null;
 
-        // 1) Preferred: short ID route /surprise/:id → fetch from API
-        const params = (useParams() as { id?: string });
-        const shortId = params.id;
+        // Fetch from API using short ID
+        const shortId = id;
         if (shortId) {
           try {
             const res = await fetch(`/api/surprise/${shortId}`);
@@ -54,24 +42,12 @@ const ViewPage: React.FC = () => {
               data = payload as Payload;
             }
           } catch (e) {
-            // continue to fallback
-          }
-        }
-
-        // 2) Fallback: legacy encoded URL
-        if (!data) {
-          const encodedData = getEncodedDataFromAnySource();
-          if (encodedData) {
-            try {
-              data = decodePayload(encodedData);
-            } catch (decodeError) {
-              console.warn('Decoding failed:', decodeError);
-            }
+            // ignore; handled below
           }
         }
 
         if (!data) {
-          setError('No birthday surprise found. The link may be invalid.');
+          setError('No birthday surprise found. The link may be invalid or expired.');
           setState('error');
           return;
         }

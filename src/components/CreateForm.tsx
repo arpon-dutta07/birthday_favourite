@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { Heart, Upload, X, RotateCcw, Copy, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { compressImage, encodePayload } from '../utils/compression';
+import { compressImage } from '../utils/compression';
 import ShareLinkModal from './ShareLinkModal';
+import { storeBirthdayData } from '../utils/dataStorage';
 
 interface ImageData {
   name: string;
@@ -116,18 +117,8 @@ const CreateForm: React.FC = () => {
         createdAt: new Date().toISOString()
       };
 
-      // Store compressed payload server-side and return a short ID
-      // This avoids long/fragile URLs that can break on other devices
-      const res = await fetch('/api/surprise', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payload }),
-      });
-      if (!res.ok) throw new Error('Failed to create short link');
-      const { id } = await res.json();
-
-      // Short, robust link that works across devices
-      const shareableUrl = `${window.location.origin}/surprise/${id}`;
+      // Use server-side storage to get a short, shareable link
+      const shareableUrl = await storeBirthdayData(payload as any);
 
       setShareUrl(shareableUrl);
       setShowShareModal(true);
