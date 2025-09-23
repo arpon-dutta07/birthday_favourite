@@ -90,50 +90,19 @@ async function startServer() {
     appType: 'spa'
   });
 
-  // Use vite's connect instance as middleware
-  app.use(vite.ssrFixStacktrace);
-  app.use(vite.middlewares);
-
-  // Catch-all handler: serve React app for all non-API routes
-  app.use(async (req, res, next) => {
-    // Skip API routes
+  // Use vite's connect instance as middleware, but only for non-API routes
+  app.use((req, res, next) => {
     if (req.path.startsWith('/api/')) {
       return next();
     }
-    
-    // Only handle GET requests for HTML pages
-    if (req.method !== 'GET') {
+    vite.ssrFixStacktrace(req, res, next);
+  });
+  
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/')) {
       return next();
     }
-    
-    // Skip static assets
-    if (req.path.includes('.') && !req.path.endsWith('.html')) {
-      return next();
-    }
-    
-    try {
-      // Let Vite handle the request and serve the React app
-      const url = req.originalUrl;
-      const template = await vite.transformIndexHtml(url, `
-        <!DOCTYPE html>
-        <html lang="en">
-          <head>
-            <meta charset="UTF-8" />
-            <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>Birthday Surprise</title>
-          </head>
-          <body>
-            <div id="root"></div>
-            <script type="module" src="/src/main.tsx"></script>
-          </body>
-        </html>
-      `);
-      res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
-    } catch (e) {
-      vite.ssrFixStacktrace(e);
-      next(e);
-    }
+    vite.middlewares(req, res, next);
   });
 
   const port = process.env.PORT || 5173;
