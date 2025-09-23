@@ -115,13 +115,12 @@ const CreateForm: React.FC = () => {
         createdAt: new Date().toISOString()
       };
 
-      // Use the new storage system instead of URL encoding
-      const { storeBirthdayData } = await import('../utils/dataStorage');
-      const shareableUrl = await storeBirthdayData(payload);
+      // Use URL encoding (LZString/Base64) for fully shareable links
+      const shareableUrl = encodePayload(payload);
       
       setShareUrl(shareableUrl);
       setShowShareModal(true);
-      setWarnings(['🎉 Magical link created successfully! This link will work perfectly across all devices.']);
+      setWarnings(['🎉 Link created! Share it anywhere — it works on all devices.']);
     } catch (error) {
       console.error('Failed to store data:', error);
       setWarnings(['Failed to generate link. Please try again or use smaller images.']);
