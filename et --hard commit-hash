@@ -1,0 +1,52 @@
+[33m6701222[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Enhance API and UI functionality: add CORS support, improve data retrieval with error handling, and implement shareable URL confirmation
+[33m6f98625[m Enhance logging for surprise API: add detailed logs for request handling, compression, and decompression processes
+[33mb3f1fc4[m Refactor middleware setup: streamline Vite integration and improve catch-all handler for serving React app
+[33me7bcb6a[m Add catch-all handler for serving React app and improve HTML response
+[33mcec1fe2[m Enhance image data handling: add compression and decompression for images, improve API response logging, and update shareable URL generation
+[33m1d2503b[m chore: update package.json to modify dev script and add express dependencies
+[33m19df8af[m Refactor URL handling: replace legacy URL shortener with server-side storage and simplify ViewPage component
+[33m4be0354[m #
+[33m9427619[m #
+[33mb401433[m #
+[33m3730d4f[m final update
+[33me31d3ff[m #
+[33m64f8d8f[m updated link
+[33m5ed7953[m updated link
+[33mbcaad31[m updated link
+[33m8b22510[m updated link
+[33m6ac3508[m updated link
+[33ma2c588a[m updated link
+[33md1252d2[m updated link
+[33meddc408[m updated link
+[33m015b0f3[m updated link
+[33m22c79ca[m updated link
+[33mfa960c6[m updated link
+[33m18dcf85[m #
+[33m1b4cc39[m #
+[33m4396df2[m updated  link
+[33me7126a5[m update link
+[33m6bbbba0[m update link
+[33ma88efdd[m updated Link
+[33m7679e85[m updated Link
+[33mf98c41e[m updated Link
+[33me64cc36[m updated Link
+[33m7ec82c2[m updated Link
+[33m4ded3df[m updated Link
+[33mb72568e[m updating Link
+[33md462a59[m updating Link
+[33m91660fd[m updated.
+[33mc966528[m updated
+[33m755d5c0[m updated
+[33m3e87c22[m updated
+[33m88893d5[m updated
+[33m55f6bdd[m updated
+[33m8858f98[m updated
+[33m6f15777[m updated
+[33m7aaaf8d[m updated music
+[33m0a38969[m updated
+[33md5eae74[m vite changes
+[33m473ca23[m link working
+[33mf22c3be[m fix: use HashRouter and hash-based data to prevent 404 on Vercel; tighten image compression to reduce URL size
+[33m19644bc[m chore: push latest changes
+[33mbd846dc[m updated
+[33m5d66aa6[m h
