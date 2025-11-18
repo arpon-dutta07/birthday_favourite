@@ -538,9 +538,9 @@ const BirthdaySequence: React.FC<Props> = ({
                     initial={{ y: '100%' }}
                     animate={{ y: '-150%' }}
                     transition={{ 
-                      duration: 25, 
+                      duration: 35, 
                       ease: 'linear',
-                      repeat: Infinity,
+                      repeat: 5,
                       repeatType: 'loop'
                     }}
                   >
