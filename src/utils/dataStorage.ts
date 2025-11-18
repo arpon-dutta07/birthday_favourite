@@ -1,4 +1,4 @@
-// Simple and reliable data storage using multiple strategies
+// Simple and reliable data storage using server-side API
 interface BirthdayData {
   name: string;
   age: string;
@@ -7,11 +7,6 @@ interface BirthdayData {
   audio?: { name: string; dataUrl: string } | null;
   createdAt: string;
 }
-
-// Generate a short, shareable ID
-const generateShortId = (): string => {
-  return Math.random().toString(36).substring(2, 10).toUpperCase();
-};
 
 // Better compression specifically for images
 const compressImageData = (images: Array<{ name: string; dataUrl: string; id?: string }>): Array<{ name: string; dataUrl: string; id?: string }> => {
@@ -30,114 +25,63 @@ const decompressImageData = (images: Array<{ name: string; dataUrl: string; id?:
   }));
 };
 
-// Store birthday data using GitHub Gist (free and reliable)
+// Store birthday data using server-side API
 export const storeBirthdayData = async (data: BirthdayData): Promise<string> => {
-  const shortId = generateShortId();
-  
   try {
     // Compress the data
     const compressedData = {
       ...data,
       images: compressImageData(data.images)
     };
-    
-    // Create a GitHub Gist (anonymous, public)
-    const gistData = {
-      description: `Birthday surprise data - ${data.name}`,
-      public: false,
-      files: {
-        [`birthday_${shortId}.json`]: {
-          content: JSON.stringify(compressedData)
-        }
-      }
-    };
 
-    const response = await fetch('https://api.github.com/gists', {
+    // Send to server API
+    const response = await fetch('/api/surprise', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(gistData)
+      body: JSON.stringify({ data: compressedData })
     });
 
-    if (response.ok) {
-      const gist = await response.json();
-      // Encode the gist ID in the URL so it works on any device
-      const encodedGistId = encodeURIComponent(btoa(gist.id)); // Base64 encode and URL encode
-      return `${window.location.origin}/view/${shortId}?gist=${encodedGistId}`;
+    if (!response.ok) {
+      throw new Error('API request failed');
+    }
+
+    const result = await response.json();
+    
+    if (result.success && result.url) {
+      return `${window.location.origin}${result.url}`;
     } else {
-      throw new Error('GitHub API failed');
+      throw new Error('Invalid API response');
     }
   } catch (error) {
-    console.warn('GitHub Gist storage failed, using localStorage fallback:', error);
-    
-    // Fallback to localStorage
-    try {
-      localStorage.setItem(`birthday_${shortId}`, JSON.stringify(data));
-      return `${window.location.origin}/view/${shortId}`;
-    } catch (storageError) {
-      throw new Error('Both storage methods failed. Data might be too large.');
-    }
+    console.error('Failed to store surprise:', error);
+    throw new Error('Failed to save your surprise. Please try again.');
   }
 };
 
-// Retrieve birthday data from short ID and optional gist ID
-export const retrieveBirthdayData = async (shortId: string, gistIdParam?: string): Promise<BirthdayData | null> => {
+// Retrieve birthday data from short ID
+export const retrieveBirthdayData = async (shortId: string): Promise<BirthdayData | null> => {
   try {
-    // First try to use gist ID from URL parameter (works on any device)
-    let gistId = gistIdParam;
-    
-    // If not in URL, check localStorage as fallback (for backward compatibility)
-    if (!gistId) {
-      gistId = localStorage.getItem(`birthday_${shortId}`) || undefined;
-    }
-    
-    // Decode gist ID if it was base64 encoded
-    if (gistId) {
-      try {
-        // First try URL decoding (if it was URL-encoded), then base64 decode
-        let decodedGistId = gistId;
-        try {
-          decodedGistId = atob(decodeURIComponent(gistId));
-        } catch {
-          // If that fails, try just base64 decoding
-          try {
-            decodedGistId = atob(gistId);
-          } catch {
-            // If that also fails, use as-is (for backward compatibility)
-            decodedGistId = gistId;
-          }
-        }
-        
-        const response = await fetch(`https://api.github.com/gists/${decodedGistId}`);
-        if (response.ok) {
-          const gist = await response.json();
-          const fileName = Object.keys(gist.files)[0];
-          const content = gist.files[fileName].content;
-          const data = JSON.parse(content);
-          
-          // Decompress the data
-          return {
-            ...data,
-            images: decompressImageData(data.images)
-          };
-        }
-      } catch (error) {
-        console.warn('Failed to retrieve from GitHub:', error);
+    // Fetch from server API
+    const response = await fetch(`/api/surprise?id=${shortId}`);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.warn('Surprise not found');
+      } else {
+        console.warn('Failed to retrieve surprise:', response.statusText);
       }
+      return null;
     }
-    
-    // Fallback to localStorage
-    const stored = localStorage.getItem(`birthday_${shortId}`);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch (error) {
-        console.error('Failed to parse stored data:', error);
-      }
-    }
-    
-    return null;
+
+    const data = await response.json();
+
+    // Decompress the data
+    return {
+      ...data,
+      images: decompressImageData(data.images)
+    };
   } catch (error) {
     console.error('Failed to retrieve data:', error);
     return null;
