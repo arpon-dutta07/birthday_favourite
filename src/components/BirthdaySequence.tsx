@@ -502,32 +502,32 @@ const BirthdaySequence: React.FC<Props> = ({
               {!isMobile && (
                 <>
                   {/* Left Side Image */}
-                  <motion.div
-                    className="absolute left-4 top-1 transform -translate-y-1/2 z-10"
-                    initial={{ y: '100vh', opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 1.5, ease: 'easeOut', delay: 0.5 }}
-                  >
-                    <img 
-                    src="/assets/mobile (1).png" 
-                    alt="Decoration Left"
-                    className="w-48 h-auto"
-                    />
-                  </motion.div>
-                  
-                  {/* Right Side Image */}
-                  <motion.div
-                    className="absolute right-4 top-1 transform -translate-y-1/2 z-10"
-                    initial={{ y: '100vh', opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 1.5, ease: 'easeOut', delay: 0.7 }}
-                  >
-                    <img 
-                    src="/assets/mobile (1).png" 
-                    alt="Decoration Right"
-                    className="w-48 h-auto"
-                    />
-                  </motion.div>
+                   <motion.div
+                     className="absolute left-4 transform -translate-y-1/2 z-10"
+                     initial={{ y: '100vh', opacity: 0 }}
+                     animate={{ y: 0, opacity: 1 }}
+                     transition={{ duration: 1.5, ease: 'easeOut', delay: 0.5 }}
+                   >
+                     <img 
+                     src="/assets/mobile (1).png" 
+                     alt="Decoration Left"
+                     className="w-240 h-240"
+                     />
+                   </motion.div>
+                   
+                   {/* Right Side Image */}
+                   <motion.div
+                     className="absolute right-4  transform -translate-y-1/2 z-10 "
+                     initial={{ y: '100vh', opacity: 0 }}
+                     animate={{ y: 0, opacity: 1 }}
+                     transition={{ duration: 1.5, ease: 'easeOut', delay: 0.7 }}
+                   >
+                     <img 
+                     src="/assets/mobile (1).png" 
+                     alt="Decoration Right"
+                     className="w-240 h-240"
+                     />
+                   </motion.div>
                 </>
               )}
               
@@ -538,7 +538,7 @@ const BirthdaySequence: React.FC<Props> = ({
                     initial={{ y: '100%' }}
                     animate={{ y: '-150%' }}
                     transition={{ 
-                      duration: 20, 
+                      duration: 25, 
                       ease: 'linear',
                       repeat: Infinity,
                       repeatType: 'loop'
