@@ -31,7 +31,8 @@ const ViewPage: React.FC = () => {
         
         // Check if we have a shortId from the URL path
         if (shortId) {
-          data = await retrieveBirthdayData(shortId);
+          const gistId = searchParams.get('gist'); // Get gist ID from URL parameter
+          data = await retrieveBirthdayData(shortId, gistId || undefined);
         } else {
           // Fallback: check for old-style encoded data in query params
           const encodedData = searchParams.get('data');
@@ -63,7 +64,7 @@ const ViewPage: React.FC = () => {
 
     loadBirthdayData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shortId]);
+  }, [shortId, searchParams]);
 
   const handleIntroComplete = () => {
     setState('birthday');
