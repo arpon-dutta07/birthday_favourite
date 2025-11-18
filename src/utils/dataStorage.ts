@@ -63,7 +63,7 @@ export const storeBirthdayData = async (data: BirthdayData): Promise<string> => 
     if (response.ok) {
       const gist = await response.json();
       // Encode the gist ID in the URL so it works on any device
-      const encodedGistId = btoa(gist.id); // Base64 encode for compact URL
+      const encodedGistId = encodeURIComponent(btoa(gist.id)); // Base64 encode and URL encode
       return `${window.location.origin}/view/${shortId}?gist=${encodedGistId}`;
     } else {
       throw new Error('GitHub API failed');
@@ -93,10 +93,22 @@ export const retrieveBirthdayData = async (shortId: string, gistIdParam?: string
     }
     
     // Decode gist ID if it was base64 encoded
-    if (gistId && gistId.length > 20) {
+    if (gistId) {
       try {
-        // Try to decode if it looks like base64
-        const decodedGistId = gistId.length === 24 ? atob(gistId) : gistId;
+        // First try URL decoding (if it was URL-encoded), then base64 decode
+        let decodedGistId = gistId;
+        try {
+          decodedGistId = atob(decodeURIComponent(gistId));
+        } catch {
+          // If that fails, try just base64 decoding
+          try {
+            decodedGistId = atob(gistId);
+          } catch {
+            // If that also fails, use as-is (for backward compatibility)
+            decodedGistId = gistId;
+          }
+        }
+        
         const response = await fetch(`https://api.github.com/gists/${decodedGistId}`);
         if (response.ok) {
           const gist = await response.json();
